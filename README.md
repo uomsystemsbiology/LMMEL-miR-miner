@@ -39,7 +39,7 @@ For further information on Virtual Reference Environments, please refer to the
 
 For further information, please contact:
 
-* Dr. Miles Andrews - Olivia Newton-John Cancer Research Institute, Australia  
+* Dr. Miles Andrews - Cancer Immunobiology Laboratory, Olivia Newton-John Cancer Research Institute, Australia  
 miles.andrews@onjcri.org.au
 
 * Dr. Joe Cursons - Systems Biology Laboratory, University of Melbourne, Australia  
