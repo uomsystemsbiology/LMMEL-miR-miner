@@ -26,10 +26,13 @@
 %
 %   GeneOntology dB
 %
+%   Hoek group list of invasive/proliferative genes in melanoma
+%
 %
 %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %
 % For further details please contact:
+%
 %	Dr Miles Andrews - Cancer Immunobiology Laboratory, Olivia Newton-John 
 %                       Cancer Research Institute, Australia
 %       miles.andrews@onjcri.org.au
@@ -124,7 +127,8 @@ arrayOtherRelsOfInt = { [    5  18965 ];    %let-7b-5p      LIN28B
 %sppecify the relative position for each sub-figure within Figure One                        
 arrayFigOneSubPlotPositions = { [ 0.15 0.70 0.500 0.25 ];
                                 [ 0.15 0.34 0.605 0.25 ];
-                                [ 0.15 0.04 0.605 0.12 ] };
+                                [ 0.15 0.04 0.605 0.12 ];
+                                [ 0.85 0.17 0.020 0.08 ] };
 
 arrayFig2P1SubPlotPos = { [ 0.10 0.20 0.20 0.75 ];
                           [ 0.42 0.20 0.20 0.75 ];
@@ -503,7 +507,7 @@ arrayPairCompIsOnlyDMTPred = (arrayPairCompIsDMTPred & ~arrayPairCompIsTSandDMTP
 
 %use hist3 to bin the mutual information and Pearson's correlation values
 % using a regular grid
-arrayStatAssocSurface = hist3(cat(2,arrayPearsCorr(:), arrayMutInfo(:)), [numStatAssocSurfaceBins numStatAssocSurfaceBins]);
+arrayStatAssocSurface = hist3(cat(2,arrayPearsCorr(arrayPairCompPassesTests), arrayMutInfo(arrayPairCompPassesTests)), [numStatAssocSurfaceBins numStatAssocSurfaceBins]);
 numMaxSurfaceFreq = max(arrayStatAssocSurface(:));
 
 arrayStatAssocSurfaceScaled = arrayStatAssocSurface/numMaxSurfaceFreq;
@@ -803,9 +807,57 @@ numArrowYStart = arrayFigOneSubPlotPositions{1}(2) + arrayFigOneSubPlotPositions
 numArrowXDiff = -0.30;
 numArrowYDiff = 0.0;
 annotation( 'arrow', [numArrowXStart, numArrowXStart+numArrowXDiff], [numArrowYStart, numArrowYStart+numArrowYDiff] );
-annotation( 'textbox', [numArrowXStart+numArrowXDiff numArrowYStart-0.02 0.30 0.10], 'String', {'Associations tend towards';'statistical independence'}, ...
+annotation( 'textbox', [numArrowXStart+numArrowXDiff numArrowYStart-0.03 0.30 0.10], 'String', {'Associations tend towards';'statistical independence'}, ...
             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize);
 
+%label the relative fraction of data points within each sextant
+numFailMIPassPosPC = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) >= numPearsCorrUpThresh) & (arrayMutInfo(arrayPairCompPassesTests) < numMutInfoThresh)));
+numFailMIFailPC = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) < numPearsCorrUpThresh) & (arrayPearsCorr(arrayPairCompPassesTests) > numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) < numMutInfoThresh)));
+numFailMIPassNegPC = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) < numMutInfoThresh)));
+numPassMIPassPosPC = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) >= numPearsCorrUpThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh)));
+numPassMIFailPC = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) < numPearsCorrUpThresh) & (arrayPearsCorr(arrayPairCompPassesTests) > numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh)));
+numPassMIPassNegPC = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh)));
+
+numTotalAssoc = sum(sum((arrayPairCompPassesTests)));
+
+%top left
+numXPos = arrayFigOneSubPlotPositions{1}(1) + arrayFigOneSubPlotPositions{1}(3)*0.1;
+numYPos = arrayFigOneSubPlotPositions{1}(2) + arrayFigOneSubPlotPositions{1}(4)*0.90;
+annotation( 'textbox', [ numXPos numYPos 0.01 0.01], 'String', [num2str(100*numFailMIPassPosPC/numTotalAssoc, '%03.2f') '%'], ...
+            'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+            'Color', 'r');
+%mid left
+numXPos = arrayFigOneSubPlotPositions{1}(1) + arrayFigOneSubPlotPositions{1}(3)*0.1;
+numYPos = arrayFigOneSubPlotPositions{1}(2) + arrayFigOneSubPlotPositions{1}(4)*0.48;
+annotation( 'textbox', [ numXPos numYPos 0.01 0.01], 'String', [num2str(100*numFailMIFailPC/numTotalAssoc, '%03.2f') '%'], ...
+            'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+            'Color', 'r');
+%bottom left
+numXPos = arrayFigOneSubPlotPositions{1}(1) + arrayFigOneSubPlotPositions{1}(3)*0.1;
+numYPos = arrayFigOneSubPlotPositions{1}(2) + arrayFigOneSubPlotPositions{1}(4)*0.05;
+annotation( 'textbox', [ numXPos numYPos 0.01 0.01], 'String', [num2str(100*numFailMIPassNegPC/numTotalAssoc, '%03.2f') '%'], ...
+            'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+            'Color', 'r');
+%top right
+numXPos = arrayFigOneSubPlotPositions{1}(1) + arrayFigOneSubPlotPositions{1}(3)*0.90;
+numYPos = arrayFigOneSubPlotPositions{1}(2) + arrayFigOneSubPlotPositions{1}(4)*0.90;
+annotation( 'textbox', [ numXPos numYPos 0.01 0.01], 'String', [num2str(100*numPassMIPassPosPC/numTotalAssoc, '%03.2f') '%'], ...
+            'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+            'Color', 'r');
+%mid right
+numXPos = arrayFigOneSubPlotPositions{1}(1) + arrayFigOneSubPlotPositions{1}(3)*0.90;
+numYPos = arrayFigOneSubPlotPositions{1}(2) + arrayFigOneSubPlotPositions{1}(4)*0.48;
+annotation( 'textbox', [ numXPos numYPos 0.01 0.01], 'String', [num2str(100*numPassMIFailPC/numTotalAssoc, '%03.2f') '%'], ...
+            'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+            'Color', 'r');
+%bottom right
+numXPos = arrayFigOneSubPlotPositions{1}(1) + arrayFigOneSubPlotPositions{1}(3)*0.90;
+numYPos = arrayFigOneSubPlotPositions{1}(2) + arrayFigOneSubPlotPositions{1}(4)*0.05;
+annotation( 'textbox', [ numXPos numYPos 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPC/numTotalAssoc, '%03.2f') '%'], ...
+            'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+            'Color', 'r');      
+        
+        
 %label the sub-figure
 numSubFigLabelYPos = arrayFigOneSubPlotPositions{1}(2) + arrayFigOneSubPlotPositions{1}(4);
 annotation( 'textbox', [0.02 numSubFigLabelYPos 0.08 0.05], 'String', '(A)', ...
@@ -830,9 +882,9 @@ set(gca, 'XLim', [ numMutInfoThresh-0.1 max(arrayMutInfo(arrayPairCompPassesTest
 arrayXLim = get(gca, 'XLim');
 arrayYLim = get(gca, 'YLim');
 
-arrayFig1BAnnotationXYDiff = { [ 0.09 -0.02 ];
-                               [ 0.14 -0.005 ];
-                               [ 0.16  0.025 ] };
+arrayFig1BAnnotationXYDiff = { [ 0.10 -0.015 ];
+                               [ 0.15 -0.005 ];
+                               [ 0.17  0.020 ] };
                            
 %draw in text arrows to highlight specific relationships
 for iRel = 1:length(arrayMiR29bRels),
@@ -850,7 +902,7 @@ for iRel = 1:length(arrayMiR29bRels),
     stringMessRNA = structData(2).Target{numMessRNAIndex};
     
     annotation('textarrow', [numXPosScaled+arrayFig1BAnnotationXYDiff{iRel}(1) numXPosScaled], [numYPosScaled+arrayFig1BAnnotationXYDiff{iRel}(2) numYPosScaled], 'String', [stringMicRNA ' vs ' stringMessRNA], ...
-                'HeadLength', 5, 'HeadWidth', 5, 'FontSize', numFigOneAnnotationFontSize);
+                'HeadLength', 1, 'HeadWidth', 1, 'FontSize', numFigOneAnnotationFontSize);
 end
 
 %re-draw the data points (over the annotation)
@@ -860,7 +912,7 @@ handleDMTandTSDataPoints = plot(arrayMutInfo(arrayPairCompIsTSandDMTPred), array
 handleMTBDataPoints = plot(arrayMutInfo(arrayPairCompIsMTBPred), arrayPearsCorr(arrayPairCompIsMTBPred), 'pentagram', 'MarkerEdgeColor', [ 0.0 0.7 0.0 ], 'MarkerFaceColor', 'none', 'MarkerSize', 6);
 
 %draw in the mutual information and Pearson's correlation thresholds
-plot([min(arrayMutInfo(arrayPairCompPassesTests)) max(arrayMutInfo(arrayPairCompPassesTests))],[numPearsCorrUpThresh numPearsCorrUpThresh], 'Color', [0.6 0.6 0.6], 'LineStyle', '--', 'LineWidth', 3);
+plot([min(arrayMutInfo(arrayPairCompPassesTests)) max(arrayMutInfo(arrayPairCompPassesTests))],[numPearsCorrLowThresh numPearsCorrLowThresh], 'Color', [0.6 0.6 0.6], 'LineStyle', '--', 'LineWidth', 3);
 plot([numMutInfoThresh numMutInfoThresh], [-1 1], 'Color', [0.6 0.6 0.6], 'LineStyle', '--', 'LineWidth', 3);
 
 %create the figure legend
@@ -871,6 +923,29 @@ handLegend = legend( [handleMTBDataPoints handleTSDataPoints handleDMTDataPoints
 %move the legend to the right a bit
 arrayLegendPos = get(handLegend, 'Position');
 set(handLegend, 'Position', (arrayLegendPos + [0.05 0 0 0]));
+% 
+% %write in the relative enrichment of dB supported associations within this
+% % sextant
+% numBaseXPos = arrayFigOneSubPlotPositions{2}(1) + arrayFigOneSubPlotPositions{2}(3)*1.12;
+% numBaseYPos = arrayFigOneSubPlotPositions{2}(2) + arrayFigOneSubPlotPositions{2}(4)*0.07;
+% numYSpacer = 0.017;
+% numPassMIPassNegPCWithTSandDMTSupp = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh) & arrayPairCompIsTSandDMTPred(arrayPairCompPassesTests)));
+% annotation( 'textbox', [ numBaseXPos numBaseYPos 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPCWithTSandDMTSupp/numPassMIPassNegPC, '%03.2f') '%'], ...
+%             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+%             'Color', 'r');
+% numPassMIPassNegPCWithDMTSupp = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh) & arrayPairCompIsOnlyDMTPred(arrayPairCompPassesTests)));
+% annotation( 'textbox', [ numBaseXPos numBaseYPos+numYSpacer 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPCWithDMTSupp/numPassMIPassNegPC, '%03.2f') '%'], ...
+%             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+%             'Color', 'r');
+% numPassMIPassNegPCWithTSSupp = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh) & arrayPairCompIsOnlyTSPred(arrayPairCompPassesTests)));
+% annotation( 'textbox', [ numBaseXPos numBaseYPos+(2*numYSpacer) 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPCWithTSSupp/numPassMIPassNegPC, '%03.2f') '%'], ...
+%             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+%             'Color', 'r');
+% numPassMIPassNegPCWithMTBSupp = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh) & arrayPairCompIsMTBPred(arrayPairCompPassesTests)));
+% annotation( 'textbox', [ numBaseXPos numBaseYPos+(3*numYSpacer) 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPCWithMTBSupp/numPassMIPassNegPC, '%03.2f') '%'], ...
+%             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
+%             'Color', 'r');
+
 
 hold off;
 
@@ -900,8 +975,8 @@ arrayCombDataForHeatMap(2,:) = arrayRelEnrichmentOfActiveDMTTargets(arrayRankByT
 arrayCombDataForHeatMap(5,:) = arrayRelEnrichmentOfGOEMPTerms(arrayRankByTSActiveEnrichIndex(1:sum(arrayOutputMicRNAFlag)));
 arrayCombDataForHeatMap(6,:) = arrayRelEnrichmentOfGOPigTerms(arrayRankByTSActiveEnrichIndex(1:sum(arrayOutputMicRNAFlag)));
 
-structHeatMapSettings = struct('Type','data', 'Thresh', 0.03);
-[ arrayCombHeatMap, arrayLUTColored, structLUTInfo ] = createHeatMapArrays( arrayCombDataForHeatMap, structHeatMapSettings );
+structHeatMapSettings = struct('Type','data', 'Thresh', 0.55);
+[ arrayCombHeatMap, arrayLUTColored, structLUTInfo ] = createHeatMapArrays( arrayCombDataForHeatMap*100, structHeatMapSettings );
 
 arrayCombHeatMap(3:4,:,:) = 255;
 
@@ -940,6 +1015,14 @@ annotation( 'textbox', [0.02 numSubFigLabelYPos 0.08 0.05], 'String', '(C)', ...
             'FontSize', numFigOneAnnotationFontSize*2, 'FontWeight', 'bold', ...
             'LineStyle', 'none' );
         
+%draw in the heat map legend
+subplot('Position', arrayFigOneSubPlotPositions{4});
+image(arrayLUTColored);
+set(gca, 'XTick', [], 'YTick', []);
+for iHMVal = 1:length(structLUTInfo),
+    text(2, structLUTInfo(iHMVal).LUTPix, [structLUTInfo(iHMVal).DispValue '%'], 'FontSize', numFigOneAnnotationFontSize );
+end
+
 
 %save the figure as a 300 dpi PNG file
 print(figOut, '-r300', '-dpng', [ structSettings.OutputFolder strFoldSep 'Fig1.png' ]);
