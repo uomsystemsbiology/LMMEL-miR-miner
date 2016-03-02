@@ -28,6 +28,15 @@
 %
 %   Hoek group list of invasive/proliferative genes in melanoma
 %
+% We would like to convey our gratitude to the developers of these
+%  databases/tools, and in particular we would like to thank them for 
+%  their decision to make these results available online in an accessible
+%  format which is amenable to computational analyses.
+%
+%  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
+%
+% This script also has a number of dependencies:
+% 
 %
 %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %
@@ -51,7 +60,7 @@
 %
 % This script was written by Joe Cursons - joseph.cursons@unimelb.edu.au
 %
-% Last Modified: 10/02/16
+% Last Modified: 15/02/16
 %
 %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %% Specify settings
@@ -67,6 +76,8 @@ numHistBins = 100;
 % red [1 0 0] for high invasiveness
 arrayInvClusterColors = { [ 0 0 1 ];
                           [ 1 0 0 ] };
+                      
+numInvSepDistPrctileStep = 0.1;
         
 %figure layout
 numFigScaleMult = 4; %scaling for on screen display
@@ -220,6 +231,10 @@ arrayMessRNACellLineStringLengths = zeros(numCellLines,1,'int16');
 for iCellLine = 1:numCellLines,
     arrayMessRNACellLineStringLengths(iCellLine) = length(structData(2).CellLine{iCellLine});
 end
+arrayMicRNACellLineStringLengths = zeros(numCellLines,1,'int16');
+for iCellLine = 1:numCellLines,
+    arrayMicRNACellLineStringLengths(iCellLine) = length(structData(1).CellLine{iCellLine});
+end
 
 arrayLowInvCellLines = structClusters(2).groupMembers{1};
 arrayLowInvCellLineStrLength = zeros(length(arrayLowInvCellLines),1,'uint8');
@@ -321,16 +336,16 @@ arrayUniqueEMPGONums = unique(arrayEMPGONum);
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 
 %the miR data contains a number of 'zero' entries (as it is from 
-% Small-RNASeq) which need to be excluded
+% small-RNASeq) which need to be excluded
 arrayNonZeroMicRNAObsIndices = find(structData(1).Data);
-%before calculating summary statistics for miR ata thresholding
+%before calculating summary statistics for miR data thresholding
 numNonZeroMicRNATenPercentile = prctile(structData(1).Data(arrayNonZeroMicRNAObsIndices),10);
 numNonZeroMicRNANinetyPercentile = prctile(structData(1).Data(arrayNonZeroMicRNAObsIndices),90);
-
 
 %calculate summary statistics for mRNA data thresholding
 numMessRNATenPercentile = prctile(structData(2).Data(:),10);
 numMessRNATenPercentRange = 0.1*range(structData(2).Data(:));
+
 %use the data derived thresholds to restrict the number of miRs being
 % analysed 
 arrayMicRNAPassesAbundThresh = false(numMicRNAs,1);
@@ -369,6 +384,16 @@ for numMicRNA = find(arrayMicRNAPassesTests),
 end
 arrayPairCompsPassTestIndices = find(arrayPairCompPassesTests);
 
+
+%use hist3 to bin the mutual information and Pearson's correlation values
+% using a regular grid, for creating a surface
+arrayStatAssocSurface = hist3(cat(2,arrayPearsCorr(arrayPairCompPassesTests), arrayMutInfo(arrayPairCompPassesTests)), [numStatAssocSurfaceBins numStatAssocSurfaceBins]);
+
+%rescale/normalise the surface for plotting
+arrayStatAssocSurfaceScaled = arrayStatAssocSurface/numMaxSurfaceFreq;
+numMaxSurfaceFreq = max(arrayStatAssocSurface(:));
+
+
 %from the subset of pairwise associations that we are interested in, 
 % calculate summary statistics for thresholding
 numMutInfoThresh = prctile(arrayMutInfo(arrayPairCompsPassTestIndices), 90);
@@ -379,6 +404,7 @@ arrayMutInfoFreq = histcounts(arrayMutInfo(arrayPairCompPassesTests),arrayMutInf
 
 numPearsCorrLowThresh = prctile(arrayPearsCorr(arrayPairCompsPassTestIndices), 2.5);
 numPearsCorrUpThresh = prctile(arrayPearsCorr(arrayPairCompsPassTestIndices), 97.5);
+
 
 
 %for the pairwise associations that we are interested in (to reduce the
@@ -505,17 +531,6 @@ arrayPairCompIsOnlyTSPred = (arrayPairCompIsTSPred & ~arrayPairCompIsTSandDMTPre
 arrayPairCompIsOnlyDMTPred = (arrayPairCompIsDMTPred & ~arrayPairCompIsTSandDMTPred);
 
 
-%use hist3 to bin the mutual information and Pearson's correlation values
-% using a regular grid
-arrayStatAssocSurface = hist3(cat(2,arrayPearsCorr(arrayPairCompPassesTests), arrayMutInfo(arrayPairCompPassesTests)), [numStatAssocSurfaceBins numStatAssocSurfaceBins]);
-numMaxSurfaceFreq = max(arrayStatAssocSurface(:));
-
-arrayStatAssocSurfaceScaled = arrayStatAssocSurface/numMaxSurfaceFreq;
-
-
-
-
-
 %identify GO terms with the specified number of component genes
 arrayNumMembersPerGOTerm = sum(arrayGOMembershipMatrix,1);
 arrayGOIndicesOfInterest = find( (arrayNumMembersPerGOTerm > numOntologyMinGenes) & ...
@@ -625,7 +640,61 @@ for iMessRNA = 1:length(structHoekLists.groupMembers{2}),
     end
 end
 
+%create some index arrays for the high and low invasiveness cell lines
+arrayLowInvCellLineMessRNAIndex = zeros(length(arrayLowInvCellLines),1,'uint8');
+arrayLowInvCellLineMicRNAIndex = zeros(length(arrayLowInvCellLines),1,'uint8');
+for iLowInvLine = 1:length(arrayLowInvCellLines),
+    strCellLine = arrayLowInvCellLines{iLowInvLine};
+    arrayLowInvCellLineMicRNAIndex(iLowInvLine) = find( strncmp(strCellLine,structData(1).CellLine,length(strCellLine)) & ...
+                                                        (arrayMicRNACellLineStringLengths == length(strCellLine)) );
+    arrayLowInvCellLineMessRNAIndex(iLowInvLine) = find( strncmp(strCellLine,structData(2).CellLine,length(strCellLine)) & ...
+                                                         (arrayMessRNACellLineStringLengths == length(strCellLine)) );
+end
 
+arrayHighInvCellLineMessRNAIndex = zeros(length(arrayHighInvCellLines),1,'uint8');
+arrayHighInvCellLineMicRNAIndex = zeros(length(arrayHighInvCellLines),1,'uint8');
+for iHighInvLine = 1:length(arrayHighInvCellLines),
+    strCellLine = arrayHighInvCellLines{iHighInvLine};
+    arrayHighInvCellLineMicRNAIndex(iHighInvLine) = find( strncmp(strCellLine,structData(1).CellLine,length(strCellLine)) & ...
+                                                        (arrayMicRNACellLineStringLengths == length(strCellLine)) );
+    arrayHighInvCellLineMessRNAIndex(iHighInvLine) = find( strncmp(strCellLine,structData(2).CellLine,length(strCellLine)) & ...
+                                                         (arrayMessRNACellLineStringLengths == length(strCellLine)) );
+end
+
+
+%for all miR:mRNA associations calculate the distance between high- and
+% low-invasiveness centroids, normalised against the 'full data hypotenuse'
+% (to account for variations in the range of different mRNAs and miRs)
+arrayPairCompInvasGroupDistScaled = zeros(numMicRNAs, numMessRNAs, 'double');
+for iMicRNA = 1:numMicRNAs,
+    
+    numMicRNARange = range(structData(1).Data(iMicRNA,:));
+    numMicRNARangeSq = numMicRNARange^2;
+        
+    numLowInvMicRNAMean = mean(structData(1).Data(iMicRNA,arrayLowInvCellLineMicRNAIndex));
+    numHighInvMicRNAMean = mean(structData(1).Data(iMicRNA,arrayHighInvCellLineMicRNAIndex));
+    numMicRNADist = numHighInvMicRNAMean-numLowInvMicRNAMean;
+    
+    for iMessRNA = 1:numMessRNAs,
+        
+        numMessRNARange = range(structData(2).Data(iMessRNA,:));
+        
+        numFullDataHyp = sqrt(numMicRNARangeSq + numMessRNARange^2);
+                
+        numLowInvMessRNAMean = mean(structData(2).Data(iMessRNA,arrayLowInvCellLineMessRNAIndex));
+        numHighInvMessRNAMean = mean(structData(2).Data(iMessRNA,arrayHighInvCellLineMessRNAIndex));
+        numMessRNADist = numHighInvMessRNAMean - numLowInvMessRNAMean;
+        
+        numDist = sqrt(numMicRNADist^2 + numMessRNADist^2);
+        
+        arrayPairCompInvasGroupDistScaled(iMicRNA, iMessRNA) = numDist/numFullDataHyp;
+        
+    end
+    
+end
+
+%create an array of percentile values for later indexing
+arrayInvSepDistPrctile = prctile(arrayPairCompInvasGroupDistScaled(arrayPairCompPassesTests),0:numInvSepDistPrctileStep:100);
 
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %% Perform Data Analysis
@@ -718,6 +787,7 @@ end
 
 %calculate 
 
+hist(arrayPairCompInvasGroupDistScaled(arrayPairCompPassesTests & arrayPassStats & (arrayPairCompIsTSPred | arrayPairCompIsDMTPred)),100);
 
 %% a
 arrayOutputMicRNAFlag = arrayGoodObs > 0;
@@ -923,28 +993,6 @@ handLegend = legend( [handleMTBDataPoints handleTSDataPoints handleDMTDataPoints
 %move the legend to the right a bit
 arrayLegendPos = get(handLegend, 'Position');
 set(handLegend, 'Position', (arrayLegendPos + [0.05 0 0 0]));
-% 
-% %write in the relative enrichment of dB supported associations within this
-% % sextant
-% numBaseXPos = arrayFigOneSubPlotPositions{2}(1) + arrayFigOneSubPlotPositions{2}(3)*1.12;
-% numBaseYPos = arrayFigOneSubPlotPositions{2}(2) + arrayFigOneSubPlotPositions{2}(4)*0.07;
-% numYSpacer = 0.017;
-% numPassMIPassNegPCWithTSandDMTSupp = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh) & arrayPairCompIsTSandDMTPred(arrayPairCompPassesTests)));
-% annotation( 'textbox', [ numBaseXPos numBaseYPos 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPCWithTSandDMTSupp/numPassMIPassNegPC, '%03.2f') '%'], ...
-%             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
-%             'Color', 'r');
-% numPassMIPassNegPCWithDMTSupp = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh) & arrayPairCompIsOnlyDMTPred(arrayPairCompPassesTests)));
-% annotation( 'textbox', [ numBaseXPos numBaseYPos+numYSpacer 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPCWithDMTSupp/numPassMIPassNegPC, '%03.2f') '%'], ...
-%             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
-%             'Color', 'r');
-% numPassMIPassNegPCWithTSSupp = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh) & arrayPairCompIsOnlyTSPred(arrayPairCompPassesTests)));
-% annotation( 'textbox', [ numBaseXPos numBaseYPos+(2*numYSpacer) 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPCWithTSSupp/numPassMIPassNegPC, '%03.2f') '%'], ...
-%             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
-%             'Color', 'r');
-% numPassMIPassNegPCWithMTBSupp = sum(sum((arrayPearsCorr(arrayPairCompPassesTests) <= numPearsCorrLowThresh) & (arrayMutInfo(arrayPairCompPassesTests) >= numMutInfoThresh) & arrayPairCompIsMTBPred(arrayPairCompPassesTests)));
-% annotation( 'textbox', [ numBaseXPos numBaseYPos+(3*numYSpacer) 0.01 0.01], 'String', [num2str(100*numPassMIPassNegPCWithMTBSupp/numPassMIPassNegPC, '%03.2f') '%'], ...
-%             'LineStyle', 'none', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle', 'FontSize', numFigOneAnnotationFontSize, ...
-%             'Color', 'r');
 
 
 hold off;
@@ -1375,7 +1423,7 @@ arrayPassStatsAndIsInDB = arrayPassStats & ...
  
 
 fileCSVOutput = fopen([ structSettings.OutputFolder '\AdditionalFile2.csv' ], 'w+');
-fprintf(fileCSVOutput, 'miR,mRNA,probeID,r_P,MI,context+,MITG-score,miRTarBase,GO:EMP,GO:Pig,HoekInv,HoekProlif\n');
+fprintf(fileCSVOutput, 'miR,mRNA,probeID,r_P,MI,context+,MITG-score,miRTarBase,GO:EMP,GO:Pig,HoekInv,HoekProlif,prctile(InvSep)\n');
 for iOutput = 1:length(arrayOutputRowIndices),
     
     numMessRNA = arrayOutputColIndices(iOutput);
@@ -1388,6 +1436,9 @@ for iOutput = 1:length(arrayOutputRowIndices),
     
     numPearsCorr = arrayPearsCorr(numMicRNA, numMessRNA);
     numMutInfo = arrayMutInfo(numMicRNA, numMessRNA);
+    
+    numInvSepPrctileIndex = find(arrayPairCompInvasGroupDistScaled(numMicRNA, numMessRNA) > arrayInvSepDistPrctile,1,'last');
+    numInvSepPrctile = (numInvSepPrctileIndex-1)*numInvSepDistPrctileStep;
     
     flagMessRNAIsEMPAnnot = arrayLMMELMessRNAIsGOEMPFlag(numMessRNA);
     flagMessRNAIsPigmentAnnot = arrayLMMELMessRNAIsGOPigmentFlag(numMessRNA);
@@ -1538,6 +1589,8 @@ for iOutput = 1:length(arrayOutputRowIndices),
         fprintf(fileCSVOutput, ',-' );
     end
     
+    fprintf(fileCSVOutput, [ ',' num2str(numInvSepPrctile, '%04.2f') ]);
+    
     %print a line feed
     fprintf(fileCSVOutput, '\n');
     
@@ -1545,3 +1598,51 @@ end
 
 fclose(fileCSVOutput);
  
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
+%% Export the GO categories used
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %   
+ 
+fileCSVOutput = fopen([ structSettings.OutputFolder '\AdditionalFileZ.csv' ], 'w+');
+fprintf(fileCSVOutput, 'Category,GO Acc. Num, GO Annot.,nGenes\n');
+
+for iGOTerm = 1:length(arrayUniqueEMPGONums),
+
+    numAcc = arrayUniqueEMPGONums(iGOTerm);
+    
+    numUniqueArrayIndex = find(arrayUniqueGONums == numAcc);
+    numMemberGenes = sum(arrayGOMembershipMatrix(:,numUniqueArrayIndex));
+    
+    if (numMemberGenes >= numOntologyMinGenes) & ...
+       (numMemberGenes <= numOntologyMaxGenes),
+        strAccNum = num2str(numAcc, '%07i');
+
+        numGOAnnotIndex = find(arrayEMPGONum == numAcc, 1, 'first');
+
+        strGOAnnot = arrayEMPGOTerm{numGOAnnotIndex};
+
+        fprintf(fileCSVOutput, ['EMP,GO:' strAccNum ',' strGOAnnot ',' num2str(numMemberGenes) '\n']);
+    end
+    
+end
+
+
+for iGOTerm = 1:length(arrayUniquePigGONums),
+
+    numAcc = arrayUniquePigGONums(iGOTerm);
+    
+    numUniqueArrayIndex = find(arrayUniqueGONums == numAcc);
+    numMemberGenes = sum(arrayGOMembershipMatrix(:,numUniqueArrayIndex));
+    
+    if (numMemberGenes >= numOntologyMinGenes) & ...
+       (numMemberGenes <= numOntologyMaxGenes),
+       strAccNum = num2str(numAcc, '%07i');
+
+        numGOAnnotIndex = find(arrayPigGONum == numAcc, 1, 'first');
+
+        strGOAnnot = arrayPigGOTerm{numGOAnnotIndex};
+
+        fprintf(fileCSVOutput, ['Pig/mel,GO:' strAccNum ',' strGOAnnot ',' num2str(numMemberGenes) '\n']);
+    end
+end
+
+fclose(fileCSVOutput);
