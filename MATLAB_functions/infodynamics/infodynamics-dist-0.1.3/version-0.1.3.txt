@@ -1,0 +1,7 @@
+Java Information Dynamics Toolkit
+Copyright (C) 2012 Joseph T. Lizier
+
+Version 0.1.3
+
+13/01/2013
+

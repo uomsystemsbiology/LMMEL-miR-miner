@@ -1,75 +1,124 @@
-function [ structOutputData, structClusters ] = loadLudwigData( structSettings )
-%loadLudwigData :: Load the Ludwig melanoma data .csv for the
-%   specified cell line into a structured array
+function [ structOutputData, structClusters ] = loadLudwigData( structInputSettings )
+%% [ structOutputData, structClusters ] = loadLudwigData( structSettings )
+% This function is designed to take in a structured array which specifies
+%  the location of the LM-MEL panel data and extract the miR and mRNA data 
+%  into structured arrays with fields for meta-information extracted from
+%  the pre-processed files (HGNC symbol; RefSeq identifier etc).
 %
-% This function takes a specified cell line
-% Inputs:
-%   - structSettings: a structured array containing settings to control
-%       output
-% Outputs:
-%   - structOutputData: a structured array containing miRNA and mRNA
-%       abundance data across the different cell lines
+%  Inputs:
+%   - structInputSettings: a structured array which contains a number of
+%           fields that control execution of different functions used
+%           throughout this analysis. Fields required by this function
+%           include:
+%       'InputFolder' - a string specifying the folder path for the LM-MEL
+%           panel processed data files
+%
+%  Output:
+%   - structOutputData: a 1D, length 2, structured array which contains
+%           fields that specify information for:
+%               (1) miR data
+%               (2) mRNA data
+%           These fields include:
+%               'DataType' - string specifying whether the structured array 
+%                   contains miR or mRNA data
+%               'CellLine' -  cell array of strings containing the LM-MEL 
+%                   cell line number/labelling
+%               'Target' - cell array of strings containing the HGNC (mRNA)
+%                   or miRBase (miR) label for the RNA transcript
+%               'TargetRefSeq' - cell array of strings containing the 
+%                   RefSeq accession number for mRNA transcripts
+%               'TargetID' - 
+%               'TargetEntrez' - 
+%               'TargetILMN' - 
+%               'Data' - 2D double-precision array with RNA transcript abundance,
+%                   indexed by cell line and target
+%   - structClusters: a 1D, length 2, structured array which contains 
+%           descriptive fields for clustering by:
+%               (1) pigmentation status (NB: clustering by mRNA expression)
+%               (2) invasiveness status (independent matrigel assay)
+%           The fields include:
+%               'type' - a string specifying the type of data used for
+%                   clustering
+%               'groupNames' - cell array of strings specifying the
+%                   descriptor (high/low) associated with each
+%                   group/cluster
+%               'groupMembers' - cell array of strings speciying the cell
+%                   lines assopciated with each group/cluster
+%
+%  MATLAB Toolbox Dependencies:
+%   - ?
+%
+% This MATLAB function has been released for the manuscript which is under 
+%   review at BMC Genome Biology:
+%   M.C. Andrews, J. Cursons et al. (2016). Systems analysis of the Ludwig 
+%       Melbourne melanoma cell line panel identifies miR-29b repression as
+%        a driver of melanoma invasiveness.
+%   doi: not-yet-assigned
+% 
+% This function was created by Joe Cursons:
+%   joseph.cursons@unimelb.edu.au
+%
+% Last Updated: 03/03/16
+%
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
+%% User-specified settings
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
 
-arrayFileNames = { [ 'LM-MEL-57 miRNA Transpose.csv' ];
-                   [ 'LM-MEL-57 GE Transpose Annot.csv' ] };
-               
-arrayExpectedSize = { [ 2593 58 ];  %row col
-                      [ 47232 62 ] };
+    %specify the filenames for the processed miR and mRNA data
+    arrayFileNames = { [ 'LM-MEL-57 miRNA Transpose.csv' ];
+                       [ 'LM-MEL-57 GE Transpose Annot.csv' ] };
 
-arrayNumHeaderCols = { [1];
-                       [5] };                   
-  
-arrayNumHeaderRows = { [1];
-                       [1] };
-                   
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %  
-   %%% Check Input
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %      
-    if isempty(structSettings),
-        % *** DO NOTHING ***
+    %specify the expected (known) size of the data because it's a lot 
+    % quicker when creating the output arrays
+    arrayExpectedSize = { [ 2593 58 ];      %rows cols
+                          [ 47232 62 ] };
+
+    %specify the number of header columns in each processed data file
+    arrayNumHeaderCols = { [1];
+                           [5] };                   
+    %and the number of header rows  
+    arrayNumHeaderRows = { [1];
+                           [1] };
+      
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
+%% Load/Extract the data
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %               
+
+    %check the input settings
+    if isempty(structInputSettings),
+        disp('warning: the input settings for the ludwig data structured array has not been properly defined');
     else
-        % *** Error ***
+        %check the the data folder path has been specified
+        if isempty(structInputSettings.InputFolder),
+            %default to the known path (note that this will not work on
+            % other machines without being modified)
+            structInputSettings.InputFolder = 'C:\wc\2015_ludwig_melanoma\data\';
+        end
     end
     
-    
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %  
-   %%% Define paths
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %  
-    stringCurrDir = cd;
-        
-    
-    
-    %create an output structure for clustering information
-    structClusters = struct('type', cell(2,1), 'groupNames', cell(2,1), 'groupMembers', cell(2,1)); 
-
-    
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %  
-    %% Load the data array into MATLAB
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %       
-    %read the data from each file into large cell arrays
+    %read the processed data from each file into large cell arrays
     arrayContent = cell(length(arrayFileNames),1);
     for iFile = 1:length(arrayFileNames),
-        fid=fopen([ structSettings.InputFolder arrayFileNames{iFile} ],'rt');
+        fid=fopen([ structInputSettings.InputFolder arrayFileNames{iFile} ],'rt');
         arrayContent{iFile} = textscan(fid,'%s','delimiter','\n');
         fclose(fid);
     end
     
-    
     %read in the pigmentation clustering information
-    filePigmentClusters = fopen([structSettings.InputFolder 'ClusterCellLinesByPigment.txt']);
+    filePigmentClusters = fopen([structInputSettings.InputFolder 'ClusterCellLinesByPigment.txt']);
     arrayPigmentClusters = textscan(filePigmentClusters,'%s','delimiter','\n');
     fclose(filePigmentClusters);
 
     %read in the invasiveness clustering information
-    fileInvasiveClusters = fopen([structSettings.InputFolder 'matrigel_invasiveness.csv']);
+    fileInvasiveClusters = fopen([structInputSettings.InputFolder 'matrigel_invasiveness.csv']);
     arrayInvasiveClusters = textscan(fileInvasiveClusters,'%s','delimiter','\n');
     fclose(fileInvasiveClusters);
     
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %  
-    %% Extract the required data
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   
-
-    %create the output struct
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
+%% Perform processing and populate output data arrays
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %           
+ 
+    %create the output struct for the data
     structOutputData = struct( 'DataType', cell(length(arrayFileNames),1), ...
                                'CellLine', cell(length(arrayFileNames),1), ...
                                'Target', cell(length(arrayFileNames),1), ...
@@ -161,11 +210,14 @@ arrayNumHeaderRows = { [1];
         
     end
     
-       
-       
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %  
-    %% Load in Various Clustering Information
-%   %%%%%   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   %   
+ 
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
+%% Perform processing and populate output clustering arrays
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %        
+    
+    %create an output structure for the clustering information
+    structClusters = struct('type', cell(2,1), 'groupNames', cell(2,1), 'groupMembers', cell(2,1)); 
+ 
     
     %clustering by pigmentation status
     structClusters(1).type = 'pigment';
