@@ -1,7 +1,81 @@
 function [ arrayOutputEnsGeneIDs, arrayOutputGOTerms, arrayOutputGONums ] = biomartEnsemblGeneToGeneOntology( arrayInputGOTerms, structFuncSettings )
-%EXTRACTENTREZGENEINFO Summary of this function goes here
-%   Detailed explanation goes here
+%% [ arrayOutputEnsGeneIDs, arrayOutputGOTerms, arrayOutputGONums ] = biomartEnsemblGeneToGeneOntology( arrayInputGOTerms, structFuncSettings )
+% This function is designed to take in a cell array of strings and match
+%  them to specific GO categories. The function also has an input 
+%  structured array specifying the location of the TargetScan data files,  
+%  and a boolean flag to control re-processing of the original data.
+%
+%  Inputs:
+%   - arrayInputGOTerms: a cell array of strings for searching the GO
+%           categories.
+%   - structSettings: a structured array which contains a number of
+%           fields that control execution of this analysis. Fields required 
+%           by this function include:
+%       'biomartFolder' - a string specifying the folder path for the 
+%           biomart
+%       'performNewExtraction' - a Boolean flag specifying whether the
+%           original data should be re-processed (True), or whether 
+%           pre-processed data (saved as .mat) should be loaded (False). 
+%           The script defaults to False as it is expected that input
+%           strings will change between successive executions of the
+%           function.
+%   
+%  Outputs:
+%       A collection of cell arrays of strings, matched by row:
+%           - arrayOutputEnsGeneIDs: miRBase name for the processed micro-RNA
+%           - arrayOutputGOTerms: HGNC symbol for the mRNA
+%           - arrayOutputGONums: RefSeq identifier for the mRNA
+%       a uint32 vector, matched by row:
+%           - arrayOutputEnsGeneIDs
+%               
+%  MATLAB Toolbox Dependencies:
+%   - none
+%
+%  Function dependencies
+%   - none
+% 
+% Users are encouraged to examine the Ensembl website and ensure that
+%  the latest version of BioMart (currently build 83) is being used 
+%  appropriately:
+%       http://ensembl.org/biomart/
+%
+% For further information on Ensembl, please refer to:
+%  Ensembl 2015
+%  Fiona Cunningham, M. Ridwan Amode, Daniel Barrell, Kathryn Beal, et al.
+%   [.. Stephen J. Trevanion, Andy Yates, Daniel R. Zerbino & Paul Flicek]
+%  Nucleic Acids Research 2015 43 Database issue:D662-D669
+%       http://dx.doi.org/10.1093/nar/gku1010
+%
+% For further information on Ensembl BioMart, please refer to: 
+%  Ensembl BioMarts: a hub for data retrieval across taxonomic space.
+%  Kinsella RJ, Kähäri A, Haider S, Zamora J, Proctor G, Spudich G,
+%    Almeida-King J, Staines D, Derwent P, Kerhornou A, Kersey P, Flicek P. 
+%  Database (Oxford). Vol. 2011 Published online Jul 23, 2011 
+%       http://dx.doi.org/10.1093/database/bar030
+%       PMID: 21785142
+%
+% This function was created by Joe Cursons:
+%   joseph.cursons@unimelb.edu.au
+%
+% Last Updated: 08/03/16
+% 
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
+%% Perform variables/folder path pre-processing
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
+ 
+    %check the extraction/pre-processing setting has been assigned
+    if ~isfield(structFuncSettings, 'performNewExtraction'),
+        %by default just load the data, don't re-run the extraction
+        structSettings.processTargetScan = false;
+    end
 
+    %check the dB folder path has been assigned
+    if ~isfield(structFuncSettings, 'TargetScanFolder'),
+        %default to the location on JCs desktop
+        structSettings.TargetScanFolder = 'C:\db\targetscan_7p0\';
+    end
+
+         
 
     numGOTermsOfInterest = length(arrayInputGOTerms);
     

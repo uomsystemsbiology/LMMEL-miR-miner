@@ -2,7 +2,7 @@ function result = informationDynamics(vec1, vec2, whichFunction)
 %% result = informationDynamics(vec1, vec2, whichFunction)
 % This function is designed to take in two vectors of data and a string
 %  specifying the function for calculating measures of pairwise statistical
-%  assocation
+%  association.
 %
 %  Inputs:
 %   - vec1: a vector of double precision values
@@ -26,27 +26,24 @@ function result = informationDynamics(vec1, vec2, whichFunction)
 %   - result: a double precision scalar specifying the calculated metric
 %               
 %  MATLAB Toolbox Dependencies:
-%   - Statistics and Machine Learning Toolbox (for calc in 
-%       informationDynamics)
+%   - Statistics and Machine Learning Toolbox ('corr')
 %
 %  Function dependencies:
-%   - JIDT
-% 
+%   - Java Information Dynamics Toolbox
+%      Lizier JT. JIDT: An information-theoretic toolkit for studying the 
+%        dynamics of complex systems. arXiv preprint arXiv:14083270. 2014.
+%        http://dx.doi.org/10.3389/frobt.2014.00011
+%
 % This function was created by David Budden:
+%   budden@mit.edu
 %   davidmarkbudden@gmail.com
 %
-% Last Updated: 03/03/16
+% Last Updated: 04/03/16
 %
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
 %% Perform pre-processing
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
  
- % -> Statistics and Machine Learning Toolbox (for corr)
-%
-% 
-%TRANSFERENTROPY Summary of this function goes here
-%   Detailed explanation goes here
-
 %check that the input data are column vectors
 if size(vec1,1) == 1 && size(vec1,2) > 1,
     disp('Warning; input vector one being used to calculate mutual information may need to be transposed');

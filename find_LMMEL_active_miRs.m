@@ -4,7 +4,7 @@
 %   MC Andrews/J Cursons, DG Hurley, M Anaka, JS Cebon, A Behren, 
 %    EJ Crampin
 %   Genome Biology, Submitted for review Feb 2016
-%   DOI: not-yet-known
+%   DOI: not-yet-assigned
 %
 % This script has been written to analyse data from the LM-MEL (primary
 %  melanoma) cell line panel, described in:
@@ -20,23 +20,54 @@
 %
 %   TargetScan
 %
-%   DIANA-microT CDS
+%   DIANA-microT CDS:
 %
-%   miRTarBase
+%
+%   miRTarBase:
+%    http://mirtarbase.mbc.nctu.edu.tw/
+%   For further reading, please refer to:
+%     Chou et al (2016). Nucleic acids research.
+%       http://dx.doi.org/10.1093/nar/gkv1258
+%     
 %
 %   GeneOntology dB
 %
-%   Hoek group list of invasive/proliferative genes in melanoma
+%   Hoek group invasive/proliferative genes in melanoma:
+%    http://www.jurmo.ch/work_model.php
+%   For further reading, please refer to:
+%     Hoek et al (2006). Pigment Cell Res.
+%       http://dx.doi.org/10.1111/j.1600-0749.2006.00322.x
+%     Widmer et al (2012). Pigment Cell Melanoma Res.
+%       http://dx.doi.org/10.1111/j.1755-148X.2012.00986.x
+%
+%   Ensembl Biomart
 %
 % We would like to convey our gratitude to the developers of these
-%  databases/tools, and in particular we would like to thank them for 
-%  their decision to make these results available online in an accessible
-%  format which is amenable to computational analyses.
+%  databases/tools.
 %
 %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %
 % This script also has a number of dependencies:
-% 
+%   - MATLAB Statistics and Machine Learning Toolbox (for calc in 
+%       calcStatAssoc/informationDynamics)
+%   - Java Information Dynamics Toolbox (JIDT) by JT Lizier
+%           http://dx.doi.org/10.3389/frobt.2014.00011
+%
+% Please refer to the function headers for specific details on the
+% functions included with this script:
+%   loadLudwigData - extract LM-MEL panel data into structured arrays
+% loadHoekLists - extract Hoek proliferative/invasive gene lists
+% calcStatAssoc - calculate statistical associations between miR-mRNA pairs
+%       -> informationDynamics uses the JIDT described above
+%       -> MATLAB Statistics and Machine Learning Toolbox (for corr)
+% loadmiRTarBase - extract the miRTarBase database v6.1
+% loadDIANAmicroT - extract the DIANA microT CDS database
+% loadTargetScanSummary - extract the TargetScan v7.0 database
+% loadTargetScanMicRNAFams - extract miR families from TargetScan v7.0 
+% extractFullHumanGeneOntology - extract gene ontology database annotations
+% matchHumanGOTermsToNums - identify GO terms of interest from input
+%                            strings
+% biomartEnsemblGeneToGeneOntology - 
 %
 %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %
@@ -60,59 +91,58 @@
 %
 % This script was written by Joe Cursons - joseph.cursons@unimelb.edu.au
 %
-% Last Modified: 15/02/16
+% Last Modified: 08/03/16
 %
-%  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
-%% Specify settings
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
+%% Perform directory structure pre-processing
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 
+%initiate the script by identifying the current directory path
+stringCurrentDir = cd;
+
+%add the path to any required functions
+addpath(genpath('C:\wc\code\'));
+
+%depending upon the OS, use a different folder separater (forward vs back
+% slash)
+if ispc,
+    strFoldSep = '\';
+elseif isunix,
+    strFoldSep = '/';
+else
+    %MATLAB on Windows can handle either forward or backslash (but MATLAB
+    % on *nix can't handle backslash)
+    disp(['warning: cannot determine the operating system, defaulting to ' ...
+            'forward slash for the folder path separator' ] );
+    strFoldSep = '/';
+end
+            
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
+%% Specify analysis settings
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
+
+%specify the miTG-score threshold value for identifying 'high confidence'
+% miRTarBase associations
 numMITGScoreThresh = 0.64;
+
+%specify the context+ threshold value for identifying 'high confidence'
+% TargetScan associations
 numContPlusThresh = -0.30;
 
-numHistBins = 100;
-
-%specify the color (RGB) for the invasiveness clusters;
-% blue [0 0 1] for low invasiveness
-% red [1 0 0] for high invasiveness
-arrayInvClusterColors = { [ 0 0 1 ];
-                          [ 1 0 0 ] };
-                      
-numInvSepDistPrctileStep = 0.1;
-        
-%figure layout
-numFigScaleMult = 4; %scaling for on screen display
-numFigOneHeight = 240; % mm
-numFigOneWidth = 150; % mm
-arrayFigOnePosition = [ 50 -150 numFigOneWidth*numFigScaleMult numFigOneHeight*numFigScaleMult ];
-    
-numFigOneAxisLabelFontSize = 10;
-numFigOneAnnotationFontSize = 8;
-
-%figure layout
-numFigTwoHeight = 55; % mm
-numFigTwoWidth = 160; % mm
-arrayFigTwoPosition = [ 50 -150 numFigTwoWidth*numFigScaleMult numFigTwoHeight*numFigScaleMult ];
-
-numFigXHeight = 240; % mm
-numFigXWidth = 192; % mm
-arrayFigXPosition = [ 50 -150 numFigXWidth*numFigScaleMult numFigXHeight*numFigScaleMult ];
-
-numFigTwoAxisLabelFontSize = 8;
-numFigTwoMarkerFontSize = 6;
-  
-numStatAssocSurfaceBins = 200;
-numHeatMapIntensities = 2^12;
+%specify the mutual information percentile for thresholding strong
+% statistical associations
+numMutInfoPercentileThresh = 90;
 
 %specify the associations with miR-29b which are of particular interest
-% (using the indices within the LM-MEL arrays)
+% (using the indices within the LM-MEL arrays), to label in Fig. 1B and
+% plot for Fig. 2A
                                         %   miR           mRNA
 arrayMiR29bRels = { [ 478 18648 ];      %miR-29b-3p     LAMC1
                     [ 478 37081 ];      %miR-29b-3p     PPIC
                     [ 478 18690 ] };    %miR-29b-3p     LASP1
 
-
 %specify the associations with other miRs which are of particular interest
-% (using the indices within the LM-MEL arrays)                
+% (using the indices within the LM-MEL arrays) for Additional file 3                
                                             %   miR         mRNA
 arrayOtherRelsOfInt = { [    5  18965 ];    %let-7b-5p      LIN28B
                         [  504  39576 ];    %miR-30b-5p     RUNX2
@@ -134,17 +164,91 @@ arrayOtherRelsOfInt = { [    5  18965 ];    %let-7b-5p      LIN28B
                         [  396  43085 ];    %miR-211-5p     TCF4
                         [  424   5889 ];    %miR-222-5p     CHKA
                         [  424  41829 ] };  %miR-222-5p     SOX10
+    
+%for the Gene Ontology database analysis, use the following strings to 
+% match miR-targets to a functional annotation, relating to
+% pigmentation or epithelial-mesenchymal plasticity 
+arrayInputPigmentGOTerms = { 'pigment'; 'melan' };
+arrayInputEMPGOTerms = { 'epithel'; 'mesench'; 'EMT' };                       
+
+%specify the minimum and maximum number of genes for GO categories which
+% are retained within the analysis
+numOntologyMinGenes = 5;
+numOntologyMaxGenes = 500;                    
                     
-%sppecify the relative position for each sub-figure within Figure One                        
+%control the processing of various databases used within the script and
+% specify various output folders
+structSettings = struct( 'InputFolder', 'C:\wc\2015_ludwig_melanoma\data\', ...
+                         'IntermediateOutputFolder', 'C:\wc\2015_ludwig_melanoma\output\', ...
+                         'OutputFolder', [ stringCurrentDir ], ...
+                         'flagLoadStats', true, ...
+                         'flagReCalcStats', false, ...
+                         'flagSaveStats', false, ...
+                         'mirTarBaseFolder', 'C:\db\miRTarBase_6p1\', ...
+                         'processMirTarBase', false, ...
+                         'DIANAmicroTFolder', 'C:\db\dianaMicroT_CDS\', ...
+                         'processDIANAmicroT', false, ...
+                         'TargetScanFolder', 'C:\db\targetscan_7p0\', ...
+                         'processTargetScan', false );
+
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
+%% Specify plotting/output settings
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
+
+%specify the color (RGB) for the invasiveness clusters;
+% [0 0 1] = blue = low invasiveness
+% [1 0 0] = red = high invasiveness
+arrayInvClusterColors = { [ 0 0 1 ];
+                          [ 1 0 0 ] };
+
+%specify the number of bins in either dimension (= MI or rP) for 
+% calculating statistical association density
+numStatAssocSurfaceBins = 200;
+
+%specify the step-size for calculating the percentile rank of the
+% invasiveness-cluster distance
+numInvSepDistPrctileStep = 0.1;
+
+%specify the scaling for on screen display of figures
+numFigScaleMult = 4;    
+
+
+%figure one layout settings
+numFigOneHeight = 240;  % mm
+numFigOneWidth = 150;   % mm
+%calculate the corresponding position vector
+arrayFigOnePosition = [ 50 -150 numFigOneWidth*numFigScaleMult numFigOneHeight*numFigScaleMult ];
+%font size for the axis labels and annotation
+numFigOneAxisLabelFontSize = 10;
+numFigOneAnnotationFontSize = 8;
+%specify the relative position for each subplot                        
 arrayFigOneSubPlotPositions = { [ 0.15 0.70 0.500 0.25 ];
                                 [ 0.15 0.34 0.605 0.25 ];
                                 [ 0.15 0.04 0.605 0.12 ];
                                 [ 0.85 0.17 0.020 0.08 ] };
-
+                            
+%figure two layout settings
+numFigTwoHeight = 55; % mm
+numFigTwoWidth = 160; % mm
+%calculate the corresponding position vector
+arrayFigTwoPosition = [ 50 -150 numFigTwoWidth*numFigScaleMult numFigTwoHeight*numFigScaleMult ];
+%font size for the axis labels and annotation
+numFigTwoAxisLabelFontSize = 8;
+numFigTwoMarkerFontSize = 6;
+%specify the relative position for each subplot    
 arrayFig2P1SubPlotPos = { [ 0.10 0.20 0.20 0.75 ];
                           [ 0.42 0.20 0.20 0.75 ];
                           [ 0.74 0.20 0.20 0.75 ] };
 
+
+%Additional file 3 layout settings
+numFigAFThreeHeight = 240; % mm
+numFigAFThreeWidth = 192; % mm
+%calculate the corresponding position vector
+arrayFigXPosition = [ 50 -150 numFigAFThreeWidth*numFigScaleMult numFigAFThreeHeight*numFigScaleMult ];
+%specify the relative position for each subplot    
+% NB: we need to leave space for integrating the TCGA plots produced from
+%  python
 arrayFigXSubPlotPos = { [ 0.06 0.91 0.10 0.08 ];
                         [ 0.22 0.91 0.10 0.08 ];
                         [ 0.38 0.91 0.10 0.08 ];
@@ -166,46 +270,7 @@ arrayFigXSubPlotPos = { [ 0.06 0.91 0.10 0.08 ];
                         [ 0.70 0.19 0.10 0.08 ];
                         [ 0.88 0.19 0.10 0.08 ]};      
 
-arrayInputPigmentGOTerms = { 'pigment'; 'melan' };
-arrayInputEMPGOTerms = { 'epithel'; 'mesench'; 'EMT' };                       
-                       
-numOntologyMinGenes = 5;
-numOntologyMaxGenes = 500;
 
-%control the processing of various databases used within the script and
-% specify various output folders
-structSettings = struct( 'InputFolder', 'C:\wc\2015_ludwig_melanoma\data\', ...
-                         'IntermediateOutputFolder', 'C:\wc\2015_ludwig_melanoma\output\', ...
-                         'OutputFolder', [ stringCurrentDir ], ...
-                         'flagLoadStats', true, ...
-                         'flagReCalcStats', false, ...
-                         'flagSaveStats', false, ...
-                         'mirTarBaseFolder', 'C:\db\miRTarBase_6p1\', ...
-                         'processMirTarBase', false, ...
-                         'DIANAmicroTFolder', 'C:\db\dianaMicroT_CDS\', ...
-                         'processDIANAmicroT', false, ...
-                         'TargetScanFolder', 'C:\db\targetscan_7p0\', ...
-                         'processTargetScan', false );
-
-%initiate the script by identifying the current directory path
-stringCurrentDir = cd;
-
-%add the path to any required functions
-addpath(genpath('C:\wc\code\'));
-
-%depending upon the OS, use a different folder separater (forward vs back
-% slash)
-if ispc,
-    strFoldSep = '\';
-elseif isunix,
-    strFoldSep = '/';
-else
-    disp(['warning: cannot determine the operating system, defaulting to ' ...
-            'forward slash for the folder path separator' ] );
-    strFoldSep = '/';
-end
-
-                     
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %% Load the Ludwig Melanoma Dataset and Perform Statistical Analysis
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
@@ -236,18 +301,22 @@ for iCellLine = 1:numCellLines,
     arrayMicRNACellLineStringLengths(iCellLine) = length(structData(1).CellLine{iCellLine});
 end
 
+%extract the cell lines which are annotated with a low invasiveness
 arrayLowInvCellLines = structClusters(2).groupMembers{1};
 arrayLowInvCellLineStrLength = zeros(length(arrayLowInvCellLines),1,'uint8');
 for iCellLine = 1:length(arrayLowInvCellLines),
     arrayLowInvCellLineStrLength(iCellLine) = length(arrayLowInvCellLines{iCellLine});
 end
 
+%extract the cell lines which are annotated with a high invasiveness
 arrayHighInvCellLines = structClusters(2).groupMembers{2};
 arrayHighInvCellLineStrLength = zeros(length(arrayHighInvCellLines),1,'uint8');
 for iCellLine = 1:length(arrayHighInvCellLines),
     arrayHighInvCellLineStrLength(iCellLine) = length(arrayHighInvCellLines{iCellLine});
 end
 
+%extract invasive/proliferative gene lists as derived by Hoek et al (please
+% see the script header for references)
 [ structHoekLists ] = loadHoekLists( structSettings );
 
 %calculate measures of statistical association between pairwise
@@ -396,15 +465,10 @@ numMaxSurfaceFreq = max(arrayStatAssocSurface(:));
 
 %from the subset of pairwise associations that we are interested in, 
 % calculate summary statistics for thresholding
-numMutInfoThresh = prctile(arrayMutInfo(arrayPairCompsPassTestIndices), 90);
-%and bin into histograms
-arrayMutInfoBinEdges = linspace(min(arrayMutInfo(arrayPairCompPassesTests))-0.01,max(arrayMutInfo(arrayPairCompPassesTests))+0.01,numHistBins);
-arrayMutInfoBinCentres = (arrayMutInfoBinEdges(2:end)+arrayMutInfoBinEdges(1:(end-1)))/2;
-arrayMutInfoFreq = histcounts(arrayMutInfo(arrayPairCompPassesTests),arrayMutInfoBinEdges);
+numMutInfoThresh = prctile(arrayMutInfo(arrayPairCompsPassTestIndices), numMutInfoPercentileThresh);
 
 numPearsCorrLowThresh = prctile(arrayPearsCorr(arrayPairCompsPassTestIndices), 2.5);
 numPearsCorrUpThresh = prctile(arrayPearsCorr(arrayPairCompsPassTestIndices), 97.5);
-
 
 
 %for the pairwise associations that we are interested in (to reduce the
@@ -615,8 +679,8 @@ end
 
 
 arrayLMMELMessRNAIsHoekProlif = false(numMessRNAs,1);
-for iMessRNA = 1:length(structHoekLists.groupMembers{1}),
-    stringMessRNA = structHoekLists.groupMembers{1}{iMessRNA};
+for iMessRNA = 1:length(structHoekLists(2).groupMembers{1}),
+    stringMessRNA = structHoekLists(2).groupMembers{1}{iMessRNA};
     arrayLMMELMessRNAMatch = find( strncmp(stringMessRNA,structData(2).Target,length(stringMessRNA)) & ...
                                    (arrayMessRNAStringLength == length(stringMessRNA)) );
     if ~isempty(arrayLMMELMessRNAMatch),
@@ -628,14 +692,14 @@ for iMessRNA = 1:length(structHoekLists.groupMembers{1}),
 end
 
 arrayLMMELMessRNAIsHoekInv = false(numMessRNAs,1);
-for iMessRNA = 1:length(structHoekLists.groupMembers{2}),
-    stringMessRNA = structHoekLists.groupMembers{2}{iMessRNA};
+for iMessRNA = 1:length(structHoekLists(2).groupMembers{2}),
+    stringMessRNA = structHoekLists(2).groupMembers{2}{iMessRNA};
     arrayLMMELMessRNAMatch = find( strncmp(stringMessRNA,structData(2).Target,length(stringMessRNA)) & ...
                                    (arrayMessRNAStringLength == length(stringMessRNA)) );
     if ~isempty(arrayLMMELMessRNAMatch),
         arrayLMMELMessRNAIsHoekInv(arrayLMMELMessRNAMatch) = true;
     else
-        disp(['warning: ' stringMessRNA ' from the Hoek proliferative list' ...
+        disp(['warning: ' stringMessRNA ' from the Hoek invasive list' ...
               ' cannot be matched to the LM-MEL data']);
     end
 end
@@ -1276,7 +1340,7 @@ close(figOut);
 
 figOut = figure;
 set(figOut, 'Position', arrayFigXPosition);
-set(figOut, 'PaperUnits', 'centimeters', 'PaperSize', [ numFigXWidth/10, numFigXHeight/10 ], 'PaperPosition', [ 0, 0, numFigXWidth/10, numFigXHeight/10 ] );
+set(figOut, 'PaperUnits', 'centimeters', 'PaperSize', [ numFigAFThreeWidth/10, numFigAFThreeHeight/10 ], 'PaperPosition', [ 0, 0, numFigAFThreeWidth/10, numFigAFThreeHeight/10 ] );
 
 arrayXLimByPlot = { [ 00.0 01.7 ];      %let-7b-5p vs LIN28B
                     [ 00.0 01.0 ];      %miR-30-5p vs RUNX2
