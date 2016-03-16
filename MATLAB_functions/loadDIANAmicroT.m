@@ -48,7 +48,7 @@ function [ arrayOutMicRNA, arrayOutPredMessRNAName, arrayOutPredMessRNAID, array
 % DIANA-microT web server v5.0: service integration into miRNA functional 
 %   analysis workflows. 
 %  Paraskevopoulou MD, Georgakilas G, Kostoulas N, Vlachos IS, Vergoulis T, 
-%   Reczko M et al.
+%    Reczko M et al.
 %  Nucleic acids research. 2013;41(Web Server issue):W169-73.
 %  http://dx.doi.org/10.1093/nar/gkt393
 % 
@@ -96,7 +96,7 @@ function [ arrayOutMicRNA, arrayOutPredMessRNAName, arrayOutPredMessRNAID, array
 
     if structSettings.processDIANAmicroT,
 
-        %load the miRBase .dat file
+        %load the DIANA microT .csv file
         disp('Loading micro-RNA predicted targets from the DIANA-microT database');
         fileDianaMicroT = fopen([structSettings.DIANAmicroTFolder stringFileName]);
         arrayCellDIANAMicroT = textscan(fileDianaMicroT,'%s','delimiter','\n');

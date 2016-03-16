@@ -37,16 +37,32 @@ function [ arrayOutMicRNAName, arrayOutMessRNA, arrayOutMessRNARefSeq, arrayOutC
 % Users are encouraged to examine the TargetScan website and ensure that
 %  the latest version of TargetScan (current.y 7.0) is being used 
 %  appropriately:
-%       http://targetscan
+%       http://targetscan.org/
 %
 % For further information on TargetScan, please refer to:
-%
 % 
+% Most mammalian mRNAs are conserved targets of microRNAs.
+%  Friedman RC, Farh KK, Burge CB, Bartel DP.  
+%  Genome research. 2009;19(1):92-105.
+%  http://dx.doi.org/10.1101/gr.082701.108
+% 
+% MicroRNA targeting specificity in mammals: determinants beyond seed
+%   pairing.
+%  Grimson A, Farh KK, Johnston WK, Garrett-Engele P, Lim LP, Bartel DP.
+%  Molecular cell. 2007;27(1):91-105.
+%  http://dx.doi.org/10.1016/j.molcel.2007.06.017
+%
+% Conserved seed pairing, often flanked by adenosines, indicates that
+%   thousands of human genes are microRNA targets.
+%  Lewis BP, Burge CB, Bartel DP.
+%  Cell. 2005;120(1):15-20.
+%  http://dx.doi.org/10.1016/j.cell.2004.12.035
+%
 %
 % This function was created by Joe Cursons:
 %   joseph.cursons@unimelb.edu.au
 %
-% Last Updated: 05/03/16
+% Last Updated: 11/03/16
 % 
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  
 %% Perform variables/folder path pre-processing

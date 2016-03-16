@@ -18,10 +18,23 @@
 % This script requires a number of functions, and utilises a number of
 %  freely-accessible databases, including:
 %
-%   TargetScan
+%   TargetScan:
+%    http://targetscan.org/
+%   For further reading, please refer to:
+%     Friedman et al (2009). Genome Research.
+%       http://dx.doi.org/10.1101/gr.082701.108
+%     Grimson et al (2007). Molecular Cell.
+%       http://dx.doi.org/10.1016/j.molcel.2007.06.017
+%     Lewis et al. (2005). Cell.
+%       http://dx.doi.org/10.1016/j.cell.2004.12.035
 %
 %   DIANA-microT CDS:
-%
+%    http://diana.imis.athena-innovation.gr/DianaTools/
+%   For further reading, please refer to:
+%     Paraskevopoulou et al (2013). Nucleic acids research.
+%       http://dx.doi.org/10.1093/nar/gkt393
+%     Reczko et al (2012). Bioinformatics.
+%       http://dx.doi.org/10.1093/bioinformatics/bts043
 %
 %   miRTarBase:
 %    http://mirtarbase.mbc.nctu.edu.tw/
@@ -29,8 +42,8 @@
 %     Chou et al (2016). Nucleic acids research.
 %       http://dx.doi.org/10.1093/nar/gkv1258
 %     
-%
-%   GeneOntology dB
+%   GeneOntology dB:
+% 
 %
 %   Hoek group invasive/proliferative genes in melanoma:
 %    http://www.jurmo.ch/work_model.php
@@ -41,6 +54,7 @@
 %       http://dx.doi.org/10.1111/j.1755-148X.2012.00986.x
 %
 %   Ensembl Biomart
+% 
 %
 % We would like to convey our gratitude to the developers of these
 %  databases/tools.
@@ -68,6 +82,7 @@
 % matchHumanGOTermsToNums - identify GO terms of interest from input
 %                            strings
 % biomartEnsemblGeneToGeneOntology - 
+% createHeatMapArrays - 
 %
 %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %
@@ -91,7 +106,7 @@
 %
 % This script was written by Joe Cursons - joseph.cursons@unimelb.edu.au
 %
-% Last Modified: 08/03/16
+% Last Modified: 11/03/16
 %
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %% Perform directory structure pre-processing
@@ -121,13 +136,15 @@ end
 %% Specify analysis settings
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 
-%specify the miTG-score threshold value for identifying 'high confidence'
-% miRTarBase associations
-numMITGScoreThresh = 0.64;
+%specify the percentile for the miTG-score threshold value for identifying 
+% 'high confidence' miRTarBase associations
+numMITGScoreThreshPercentile = 70;
+%equivalent to 0.6340
 
-%specify the context+ threshold value for identifying 'high confidence'
-% TargetScan associations
-numContPlusThresh = -0.30;
+%specify the percentile for the context+ threshold value for identifying 
+% 'high confidence' TargetScan associations
+numContPlusThreshPercentile = 85;
+%equivalent to -0.2860
 
 %specify the mutual information percentile for thresholding strong
 % statistical associations
@@ -212,9 +229,8 @@ numInvSepDistPrctileStep = 0.1;
 %specify the scaling for on screen display of figures
 numFigScaleMult = 4;    
 
-
 %figure one layout settings
-numFigOneHeight = 240;  % mm
+numFigOneHeight = 180;  % mm
 numFigOneWidth = 150;   % mm
 %calculate the corresponding position vector
 arrayFigOnePosition = [ 50 -150 numFigOneWidth*numFigScaleMult numFigOneHeight*numFigScaleMult ];
@@ -222,55 +238,56 @@ arrayFigOnePosition = [ 50 -150 numFigOneWidth*numFigScaleMult numFigOneHeight*n
 numFigOneAxisLabelFontSize = 10;
 numFigOneAnnotationFontSize = 8;
 %specify the relative position for each subplot                        
-arrayFigOneSubPlotPositions = { [ 0.15 0.70 0.500 0.25 ];
-                                [ 0.15 0.34 0.605 0.25 ];
-                                [ 0.15 0.04 0.605 0.12 ];
-                                [ 0.85 0.17 0.020 0.08 ] };
-                            
+arrayFigOneSubPlotPositions = { [ 0.15 0.60 0.500 0.33 ];
+                                [ 0.15 0.06 0.605 0.35 ] };                       
+
+
 %figure two layout settings
-numFigTwoHeight = 55; % mm
-numFigTwoWidth = 160; % mm
+numFigTwoHeight = 255; % mm
+numFigTwoWidth = 205; % mm
 %calculate the corresponding position vector
 arrayFigTwoPosition = [ 50 -150 numFigTwoWidth*numFigScaleMult numFigTwoHeight*numFigScaleMult ];
-%font size for the axis labels and annotation
-numFigTwoAxisLabelFontSize = 8;
-numFigTwoMarkerFontSize = 6;
-%specify the relative position for each subplot    
-arrayFig2P1SubPlotPos = { [ 0.10 0.20 0.20 0.75 ];
-                          [ 0.42 0.20 0.20 0.75 ];
-                          [ 0.74 0.20 0.20 0.75 ] };
-
-
-%Additional file 3 layout settings
-numFigAFThreeHeight = 240; % mm
-numFigAFThreeWidth = 192; % mm
-%calculate the corresponding position vector
-arrayFigXPosition = [ 50 -150 numFigAFThreeWidth*numFigScaleMult numFigAFThreeHeight*numFigScaleMult ];
 %specify the relative position for each subplot    
 % NB: we need to leave space for integrating the TCGA plots produced from
 %  python
-arrayFigXSubPlotPos = { [ 0.06 0.91 0.10 0.08 ];
-                        [ 0.22 0.91 0.10 0.08 ];
-                        [ 0.38 0.91 0.10 0.08 ];
-                        [ 0.62 0.91 0.10 0.08 ];    %MTB: miR-125b-5p vs IRF4
-                        [ 0.88 0.91 0.10 0.08 ];    %MTB
-                        [ 0.14 0.67 0.10 0.08 ];    %29b CDK6
-                        [ 0.46 0.67 0.10 0.08 ];    %29b COL4A1
-                        [ 0.78 0.67 0.10 0.08 ];    %29b PDGFC
-                        [ 0.06 0.43 0.10 0.08 ];
-                        [ 0.22 0.43 0.10 0.08 ];
-                        [ 0.38 0.43 0.10 0.08 ];
-                        [ 0.54 0.43 0.10 0.08 ];
-                        [ 0.70 0.43 0.10 0.08 ];
-                        [ 0.88 0.43 0.10 0.08 ];
-                        [ 0.06 0.19 0.10 0.08 ];
-                        [ 0.22 0.19 0.10 0.08 ];
-                        [ 0.38 0.19 0.10 0.08 ];
-                        [ 0.54 0.19 0.10 0.08 ];
-                        [ 0.70 0.19 0.10 0.08 ];
-                        [ 0.88 0.19 0.10 0.08 ]};      
+arrayFigTwoSubPlotPos = { [ 0.070 0.90 0.08 0.06 ];
+                          [ 0.235 0.90 0.08 0.06 ];
+                          [ 0.400 0.90 0.08 0.06 ];
+                          [ 0.645 0.90 0.08 0.06 ];    %MTB: miR-125b-5p vs IRF4
+                          [ 0.895 0.90 0.08 0.06 ];    %MTB
+                          [ 0.150 0.65 0.08 0.06 ];    %29b CDK6
+                          [ 0.480 0.65 0.08 0.06 ];    %29b COL4A1
+                          [ 0.810 0.65 0.08 0.06 ];    %29b PDGFC
+                          [ 0.070 0.40 0.08 0.06 ];
+                          [ 0.235 0.40 0.08 0.06 ];
+                          [ 0.400 0.40 0.08 0.06 ];
+                          [ 0.565 0.40 0.08 0.06 ];
+                          [ 0.730 0.40 0.08 0.06 ];
+                          [ 0.895 0.40 0.08 0.06 ];
+                          [ 0.070 0.15 0.08 0.06 ];
+                          [ 0.235 0.15 0.08 0.06 ];
+                          [ 0.400 0.15 0.08 0.06 ];
+                          [ 0.565 0.15 0.08 0.06 ];
+                          [ 0.730 0.15 0.08 0.06 ];
+                          [ 0.895 0.15 0.08 0.06 ] };      
+   
+%figure three layout settings
+numFigThreeHeight = 160; % mm
+numFigThreeWidth = 160; % mm
+%calculate the corresponding position vector
+arrayFigThreePosition = [ 50 -150 numFigThreeWidth*numFigScaleMult numFigThreeHeight*numFigScaleMult ];
+%font size for the axis labels and annotation
+numFigThreeAxisLabelFontSize = 8;
+numFigThreePanelLabelFontSize = 10;
+numFigThreeMarkerFontSize = 6;
+%specify the relative position for each subplot    
+arrayFig3P1SubPlotPos = { [ 0.15 0.54 0.605 0.16 ];
+                          [ 0.85 0.71 0.020 0.10 ];
+                          [ 0.10 0.15 0.20 0.20 ];
+                          [ 0.42 0.15 0.20 0.20 ];
+                          [ 0.74 0.15 0.20 0.20 ] };
 
-
+                             
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
 %% Load the Ludwig Melanoma Dataset and Perform Statistical Analysis
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
@@ -459,8 +476,8 @@ arrayPairCompsPassTestIndices = find(arrayPairCompPassesTests);
 arrayStatAssocSurface = hist3(cat(2,arrayPearsCorr(arrayPairCompPassesTests), arrayMutInfo(arrayPairCompPassesTests)), [numStatAssocSurfaceBins numStatAssocSurfaceBins]);
 
 %rescale/normalise the surface for plotting
-arrayStatAssocSurfaceScaled = arrayStatAssocSurface/numMaxSurfaceFreq;
 numMaxSurfaceFreq = max(arrayStatAssocSurface(:));
+arrayStatAssocSurfaceScaled = arrayStatAssocSurface/numMaxSurfaceFreq;
 
 
 %from the subset of pairwise associations that we are interested in, 
@@ -474,6 +491,7 @@ numPearsCorrUpThresh = prctile(arrayPearsCorr(arrayPairCompsPassTestIndices), 97
 %for the pairwise associations that we are interested in (to reduce the
 % search domain..), identify those with support from the various databases
 arrayPairCompIsDMTPred = false(numMicRNAs, numMessRNAs);
+numMITGScoreThresh = double(prctile(arrayDMTPredIntMITGScores, numMITGScoreThreshPercentile))/1000;
 arrayDMTAboveThreshIndices = find(arrayDMTPredIntMITGScores > uint16(numMITGScoreThresh*1000));
 for iDMTRel = 1:length(arrayDMTAboveThreshIndices),
     stringDMTMicRNA = arrayDMTMicRNANames{arrayDMTAboveThreshIndices(iDMTRel)};
@@ -500,6 +518,9 @@ disp(['matching high-confidence TargetScan predicted relationships to the miR-mR
 
 
 arrayPairCompIsTSPred = false(numMicRNAs, numMessRNAs);
+
+numContPlusThresh = double(prctile(arrayTSContPlus, numContPlusThreshPercentile))/-1000;
+
 arrayTSAboveThreshIndices = find(arrayTSContPlus > uint16(-numContPlusThresh*1000));
 
 numCnt = length(arrayTSAboveThreshIndices)/20;
@@ -1072,9 +1093,24 @@ annotation( 'textbox', [0.02 numSubFigLabelYPos 0.08 0.05], 'String', '(B)', ...
             'FontSize', numFigOneAnnotationFontSize*2, 'FontWeight', 'bold', ...
             'LineStyle', 'none' );
         
+%save the figure as a 300 dpi PNG file
+print(figOut, '-r300', '-dpng', [ structSettings.OutputFolder strFoldSep 'Fig1.png' ]);
+
+%close the figure window
+close(figOut);
+
+
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
+%% Create the output figure - Figure 3A-D
+ %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %    
+
+figOut = figure;
+set(figOut, 'Position', arrayFigThreePosition);
+set(figOut, 'PaperUnits', 'centimeters', 'PaperSize', [ numFigThreeWidth/10, numFigThreeHeight/10 ], 'PaperPosition', [ 0, 0, numFigThreeWidth/10, numFigThreeHeight/10 ] );
+
 
 %specify the subplot axes for the Fig. 1C
-subplot('Position', arrayFigOneSubPlotPositions{3});
+subplot('Position', arrayFig3P1SubPlotPos{1});
 
 numOutputMicRNAs = 15;
 
@@ -1087,7 +1123,8 @@ arrayCombDataForHeatMap(2,:) = arrayRelEnrichmentOfActiveDMTTargets(arrayRankByT
 arrayCombDataForHeatMap(5,:) = arrayRelEnrichmentOfGOEMPTerms(arrayRankByTSActiveEnrichIndex(1:sum(arrayOutputMicRNAFlag)));
 arrayCombDataForHeatMap(6,:) = arrayRelEnrichmentOfGOPigTerms(arrayRankByTSActiveEnrichIndex(1:sum(arrayOutputMicRNAFlag)));
 
-structHeatMapSettings = struct('Type','data', 'Thresh', 0.55);
+structHeatMapSettings = struct( 'Type', 'data-2thresh', ...
+                                'LowThresh', 0.55, 'HighThresh', 5.50);
 [ arrayCombHeatMap, arrayLUTColored, structLUTInfo ] = createHeatMapArrays( arrayCombDataForHeatMap*100, structHeatMapSettings );
 
 arrayCombHeatMap(3:4,:,:) = 255;
@@ -1122,13 +1159,13 @@ text( numOutputMicRNAs+0.6, 6, {'EMP'}, ...
       'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle' );
 
 %label the sub-figure
-numSubFigLabelYPos = arrayFigOneSubPlotPositions{3}(2) + arrayFigOneSubPlotPositions{3}(4)+0.06;
-annotation( 'textbox', [0.02 numSubFigLabelYPos 0.08 0.05], 'String', '(C)', ...
+numSubFigLabelYPos = arrayFig3P1SubPlotPos{1}(2) + arrayFig3P1SubPlotPos{1}(4)+0.06;
+annotation( 'textbox', [0.02 numSubFigLabelYPos 0.08 0.05], 'String', '(A)', ...
             'FontSize', numFigOneAnnotationFontSize*2, 'FontWeight', 'bold', ...
             'LineStyle', 'none' );
         
 %draw in the heat map legend
-subplot('Position', arrayFigOneSubPlotPositions{4});
+subplot('Position', arrayFig3P1SubPlotPos{2});
 image(arrayLUTColored);
 set(gca, 'XTick', [], 'YTick', []);
 for iHMVal = 1:length(structLUTInfo),
@@ -1136,40 +1173,27 @@ for iHMVal = 1:length(structLUTInfo),
 end
 
 
-%save the figure as a 300 dpi PNG file
-print(figOut, '-r300', '-dpng', [ structSettings.OutputFolder strFoldSep 'Fig1.png' ]);
-
-%close the figure window
-close(figOut);
-
- %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
-%% Create the output figure - Figure 2A
- %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %    
-
-figOut = figure;
-set(figOut, 'Position', arrayFigTwoPosition);
-set(figOut, 'PaperUnits', 'centimeters', 'PaperSize', [ numFigTwoWidth/10, numFigTwoHeight/10 ], 'PaperPosition', [ 0, 0, numFigTwoWidth/10, numFigTwoHeight/10 ] );
 
 
 %specify the arrow/annotation x-y spacing for the LM-MEL-9 labelling
-arrayFig2P1LMMEL9AnnotationXYDiff = { [  0.01  0.03 ];
-                                      [  0.05  0.07 ];
-                                      [  0.03  0.03 ] };
+arrayFig3P2LMMEL9AnnotationXYDiff = { [  0.01  0.015 ];
+                                      [  0.05  0.035 ];
+                                      [  0.03  0.015 ] };
                                 
 %specify the arrow/annotation x-y spacing for the LM-MEL-42 labelling
-arrayFig2P1LMMEL42AnnotationXYDiff = { [  0.010  0.04 ];
-                                       [  0.003  0.05 ];
-                                       [  0.010  0.04 ] };
+arrayFig3P2LMMEL42AnnotationXYDiff = { [  0.010  0.02 ];
+                                       [  0.003  0.025 ];
+                                       [  0.010  0.02 ] };
                                  
 %specify the arrow/annotation x-y spacing for the LM-MEL-45 labelling
-arrayFig2P1LMMEL45AnnotationXYDiff = { [ 0.09 -0.030 ];
-                                       [ 0.08  0.050 ];
-                                       [ 0.07 -0.010 ] };
+arrayFig3P2LMMEL45AnnotationXYDiff = { [ 0.09 -0.015 ];
+                                       [ 0.08  0.025 ];
+                                       [ 0.07 -0.005 ] };
 
 %specify the arrow/annotation x-y spacing for the LM-MEL-77 labelling
-arrayFig2P1LMMEL77AnnotationXYDiff = { [ 0.07  0.05 ];
-                                       [ 0.07  0.05 ];
-                                       [ 0.06  0.10 ] };
+arrayFig3P2LMMEL77AnnotationXYDiff = { [ 0.07  0.025 ];
+                                       [ 0.07  0.025 ];
+                                       [ 0.06  0.050 ] };
                                    
 arrayXLim = [ 0 0.4 ];
 arrayYLimByPlot = { [ 09.5 13.0 ];
@@ -1259,7 +1283,7 @@ for iSpecRel = 1:length(arrayMiR29bRels),
     numXForLMMEL77 = arrayMicRNAData(numLMMEL77Index);
     numYForLMMEL77 = arrayMessRNAData(numLMMEL77Index);
     
-    subplot('Position', arrayFig2P1SubPlotPos{iSpecRel});
+    subplot('Position', arrayFig3P1SubPlotPos{iSpecRel+2});
         
     arrayInvasiveWasNotAssayed = ~(arrayCellLineIsLowInv | arrayCellLineIsHighInv);
     
@@ -1287,60 +1311,60 @@ for iSpecRel = 1:length(arrayMiR29bRels),
                 'MarkerEdgeColor', [ 0.3 0.3 0.3 ], 'MarkerFaceColor', [ 0.8 0.8 0.8 ]);
     end
         
-    xlabel([strMicRNA ' abundance'], 'FontSize', numFigTwoAxisLabelFontSize);
-    ylabel([strMessRNA ' abundance'], 'FontSize', numFigTwoAxisLabelFontSize);
+    xlabel([strMicRNA ' abundance'], 'FontSize', numFigThreeAxisLabelFontSize);
+    ylabel([strMessRNA ' abundance'], 'FontSize', numFigThreeAxisLabelFontSize);
     
     set(gca, 'XLim', arrayXLim);
     set(gca, 'YLim', arrayYLimByPlot{iSpecRel});
     arrayYLim = get(gca, 'YLim');
     
-    numRescaledXForLMMEL9 = arrayFig2P1SubPlotPos{iSpecRel}(1) + arrayFig2P1SubPlotPos{iSpecRel}(3)*((numXForLMMEL9-arrayXLim(1))/(arrayXLim(2)-arrayXLim(1)));
-    numRescaledYForLMMEL9 = arrayFig2P1SubPlotPos{iSpecRel}(2) + arrayFig2P1SubPlotPos{iSpecRel}(4)*((numYForLMMEL9-arrayYLim(1))/(arrayYLim(2)-arrayYLim(1)));
+    numRescaledXForLMMEL9 = arrayFig3P1SubPlotPos{iSpecRel+2}(1) + arrayFig3P1SubPlotPos{iSpecRel+2}(3)*((numXForLMMEL9-arrayXLim(1))/(arrayXLim(2)-arrayXLim(1)));
+    numRescaledYForLMMEL9 = arrayFig3P1SubPlotPos{iSpecRel+2}(2) + arrayFig3P1SubPlotPos{iSpecRel+2}(4)*((numYForLMMEL9-arrayYLim(1))/(arrayYLim(2)-arrayYLim(1)));
         
-    numRescaledXForLMMEL42 = arrayFig2P1SubPlotPos{iSpecRel}(1) + arrayFig2P1SubPlotPos{iSpecRel}(3)*((numXForLMMEL42-arrayXLim(1))/(arrayXLim(2)-arrayXLim(1)));
-    numRescaledYForLMMEL42 = arrayFig2P1SubPlotPos{iSpecRel}(2) + arrayFig2P1SubPlotPos{iSpecRel}(4)*((numYForLMMEL42-arrayYLim(1))/(arrayYLim(2)-arrayYLim(1)));
+    numRescaledXForLMMEL42 = arrayFig3P1SubPlotPos{iSpecRel+2}(1) + arrayFig3P1SubPlotPos{iSpecRel+2}(3)*((numXForLMMEL42-arrayXLim(1))/(arrayXLim(2)-arrayXLim(1)));
+    numRescaledYForLMMEL42 = arrayFig3P1SubPlotPos{iSpecRel+2}(2) + arrayFig3P1SubPlotPos{iSpecRel+2}(4)*((numYForLMMEL42-arrayYLim(1))/(arrayYLim(2)-arrayYLim(1)));
     
-    numRescaledXForLMMEL77 = arrayFig2P1SubPlotPos{iSpecRel}(1) + arrayFig2P1SubPlotPos{iSpecRel}(3)*((numXForLMMEL77-arrayXLim(1))/(arrayXLim(2)-arrayXLim(1)));
-    numRescaledYForLMMEL77 = arrayFig2P1SubPlotPos{iSpecRel}(2) + arrayFig2P1SubPlotPos{iSpecRel}(4)*((numYForLMMEL77-arrayYLim(1))/(arrayYLim(2)-arrayYLim(1)));
+    numRescaledXForLMMEL77 = arrayFig3P1SubPlotPos{iSpecRel+2}(1) + arrayFig3P1SubPlotPos{iSpecRel+2}(3)*((numXForLMMEL77-arrayXLim(1))/(arrayXLim(2)-arrayXLim(1)));
+    numRescaledYForLMMEL77 = arrayFig3P1SubPlotPos{iSpecRel+2}(2) + arrayFig3P1SubPlotPos{iSpecRel+2}(4)*((numYForLMMEL77-arrayYLim(1))/(arrayYLim(2)-arrayYLim(1)));
     
-    numRescaledXForLMMEL45 = arrayFig2P1SubPlotPos{iSpecRel}(1) + arrayFig2P1SubPlotPos{iSpecRel}(3)*((numXForLMMEL45-arrayXLim(1))/(arrayXLim(2)-arrayXLim(1)));
-    numRescaledYForLMMEL45 = arrayFig2P1SubPlotPos{iSpecRel}(2) + arrayFig2P1SubPlotPos{iSpecRel}(4)*((numYForLMMEL45-arrayYLim(1))/(arrayYLim(2)-arrayYLim(1)));
+    numRescaledXForLMMEL45 = arrayFig3P1SubPlotPos{iSpecRel+2}(1) + arrayFig3P1SubPlotPos{iSpecRel+2}(3)*((numXForLMMEL45-arrayXLim(1))/(arrayXLim(2)-arrayXLim(1)));
+    numRescaledYForLMMEL45 = arrayFig3P1SubPlotPos{iSpecRel+2}(2) + arrayFig3P1SubPlotPos{iSpecRel+2}(4)*((numYForLMMEL45-arrayYLim(1))/(arrayYLim(2)-arrayYLim(1)));
         
     %label the LM-MEL-9 cell line
-    annotation('textarrow', [numRescaledXForLMMEL9+arrayFig2P1LMMEL9AnnotationXYDiff{iSpecRel}(1) numRescaledXForLMMEL9], ...
-                            [numRescaledYForLMMEL9+arrayFig2P1LMMEL9AnnotationXYDiff{iSpecRel}(2) numRescaledYForLMMEL9], ...
-                            'String', ['LM-MEL-9'], 'FontSize', numFigTwoAxisLabelFontSize, ...
+    annotation('textarrow', [numRescaledXForLMMEL9+arrayFig3P2LMMEL9AnnotationXYDiff{iSpecRel}(1) numRescaledXForLMMEL9], ...
+                            [numRescaledYForLMMEL9+arrayFig3P2LMMEL9AnnotationXYDiff{iSpecRel}(2) numRescaledYForLMMEL9], ...
+                            'String', ['LM-MEL-9'], 'FontSize', numFigThreeAxisLabelFontSize, ...
                             'HeadLength', 1, 'HeadWidth', 1, 'LineWidth', 1);
     %label the LM-MEL-42 cell line
-    annotation('textarrow', [numRescaledXForLMMEL42+arrayFig2P1LMMEL42AnnotationXYDiff{iSpecRel}(1) numRescaledXForLMMEL42], ...
-                            [numRescaledYForLMMEL42+arrayFig2P1LMMEL42AnnotationXYDiff{iSpecRel}(2) numRescaledYForLMMEL42], ...
-                            'String', ['LM-MEL-42'], 'FontSize', numFigTwoAxisLabelFontSize, ...
+    annotation('textarrow', [numRescaledXForLMMEL42+arrayFig3P2LMMEL42AnnotationXYDiff{iSpecRel}(1) numRescaledXForLMMEL42], ...
+                            [numRescaledYForLMMEL42+arrayFig3P2LMMEL42AnnotationXYDiff{iSpecRel}(2) numRescaledYForLMMEL42], ...
+                            'String', ['LM-MEL-42'], 'FontSize', numFigThreeAxisLabelFontSize, ...
                             'HeadLength', 1, 'HeadWidth', 1, 'LineWidth', 1);
     %label the LM-MEL-77 cell line
-    annotation('textarrow', [numRescaledXForLMMEL77+arrayFig2P1LMMEL77AnnotationXYDiff{iSpecRel}(1) numRescaledXForLMMEL77], ...
-                            [numRescaledYForLMMEL77+arrayFig2P1LMMEL77AnnotationXYDiff{iSpecRel}(2) numRescaledYForLMMEL77], ...
-                            'String', ['LM-MEL-77'], 'FontSize', numFigTwoAxisLabelFontSize, ...
+    annotation('textarrow', [numRescaledXForLMMEL77+arrayFig3P2LMMEL77AnnotationXYDiff{iSpecRel}(1) numRescaledXForLMMEL77], ...
+                            [numRescaledYForLMMEL77+arrayFig3P2LMMEL77AnnotationXYDiff{iSpecRel}(2) numRescaledYForLMMEL77], ...
+                            'String', ['LM-MEL-77'], 'FontSize', numFigThreeAxisLabelFontSize, ...
                             'HeadLength', 1, 'HeadWidth', 1, 'LineWidth', 1);
     %label the LM-MEL-45 cell line
-    annotation('textarrow', [numRescaledXForLMMEL45+arrayFig2P1LMMEL45AnnotationXYDiff{iSpecRel}(1) numRescaledXForLMMEL45], ...
-                            [numRescaledYForLMMEL45+arrayFig2P1LMMEL45AnnotationXYDiff{iSpecRel}(2) numRescaledYForLMMEL45], ...
-                            'String', ['LM-MEL-45'], 'FontSize', numFigTwoAxisLabelFontSize, ...
+    annotation('textarrow', [numRescaledXForLMMEL45+arrayFig3P2LMMEL45AnnotationXYDiff{iSpecRel}(1) numRescaledXForLMMEL45], ...
+                            [numRescaledYForLMMEL45+arrayFig3P2LMMEL45AnnotationXYDiff{iSpecRel}(2) numRescaledYForLMMEL45], ...
+                            'String', ['LM-MEL-45'], 'FontSize', numFigThreeAxisLabelFontSize, ...
                             'HeadLength', 1, 'HeadWidth', 1, 'LineWidth', 1);
         
     hold off;  
     
 end
 
-print(figOut, '-r300', '-dpng', [ structSettings.OutputFolder strFoldSep 'Fig2_Part1.png' ]);
+print(figOut, '-r300', '-dpng', [ structSettings.OutputFolder strFoldSep 'Fig3_Part1.png' ]);
 close(figOut);
 
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  % 
-%% Create the output figure - Figure X
+%% Create output Figure 2
  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %  %    
 
 figOut = figure;
-set(figOut, 'Position', arrayFigXPosition);
-set(figOut, 'PaperUnits', 'centimeters', 'PaperSize', [ numFigAFThreeWidth/10, numFigAFThreeHeight/10 ], 'PaperPosition', [ 0, 0, numFigAFThreeWidth/10, numFigAFThreeHeight/10 ] );
+set(figOut, 'Position', arrayFigTwoPosition);
+set(figOut, 'PaperUnits', 'centimeters', 'PaperSize', [ numFigTwoWidth/10, numFigTwoHeight/10 ], 'PaperPosition', [ 0, 0, numFigTwoWidth/10, numFigTwoHeight/10 ] );
 
 arrayXLimByPlot = { [ 00.0 01.7 ];      %let-7b-5p vs LIN28B
                     [ 00.0 01.0 ];      %miR-30-5p vs RUNX2
@@ -1383,7 +1407,11 @@ arrayYLimByPlot = { [ 03.9 10.5 ];      %let-7b-5p vs LIN28B
                     [ 03.9 09.0 ];      %222-5p vs TCF4
                     [ 03.9 09.0 ];      %222-5p vs CHKA1
                     [ 03.9 14.0 ] };    %222-5p vs SOX10
-              
+
+arrayTwoTCGAMicRNAsFlag = false(length(arrayYLimByPlot),1);
+arrayTwoTCGAMicRNAsFlag(4) = true;
+arrayTwoTCGAMicRNAsFlag(6:8) = true;
+                
 for iSpecRel = 1:length(arrayOtherRelsOfInt),
     
     numMicRNA = arrayOtherRelsOfInt{iSpecRel}(1);
@@ -1429,7 +1457,7 @@ for iSpecRel = 1:length(arrayOtherRelsOfInt),
 
     %plot in the specified position (note that this is not a regular MxN)
     % array
-    subplot('Position', arrayFigXSubPlotPos{iSpecRel});
+    subplot('Position', arrayFigTwoSubPlotPos{iSpecRel});
         
     arrayInvasiveWasNotAssayed = ~(arrayCellLineIsLowInv | arrayCellLineIsHighInv);
     
@@ -1457,19 +1485,45 @@ for iSpecRel = 1:length(arrayOtherRelsOfInt),
     end
             
     %label the x- and y-axes
-    xlabel(strMicRNAToDisp, 'FontSize', numFigTwoAxisLabelFontSize);
-    ylabel(strMessRNA, 'FontSize', numFigTwoAxisLabelFontSize);
+    xlabel(strMicRNAToDisp, 'FontSize', numFigThreeAxisLabelFontSize);
+    ylabel(strMessRNA, 'FontSize', numFigThreeAxisLabelFontSize);
+    
     
     set(gca, 'XLim', arrayXLimByPlot{iSpecRel});
     arrayXLim = get(gca, 'XLim');
     set(gca, 'YLim', arrayYLimByPlot{iSpecRel});
     arrayYLim = get(gca, 'YLim');
 
+    %annotate with strength of statistical association
+    strMutInfo = num2str(arrayMutInfo(numMicRNA,numMessRNA), '%03.2f');
+    strPearsCorr = num2str(arrayPearsCorr(numMicRNA,numMessRNA), '%03.2f');
+    text( arrayXLim(1)+0.80*range(arrayXLim),arrayYLim(1)+1.05*range(arrayYLim), ...
+          ['MI = ' strMutInfo], 'FontSize', numFigThreeAxisLabelFontSize, ...
+          'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle' );
+    text(arrayXLim(1)+0.80*range(arrayXLim),arrayYLim(1)+0.85*range(arrayYLim), ...
+          ['r_P = ' strPearsCorr], 'FontSize', numFigThreeAxisLabelFontSize, ...
+          'HorizontalAlignment', 'center', 'VerticalAlignment', 'middle' );
+    
+    %annotate the panel label
+    if arrayTwoTCGAMicRNAsFlag(iSpecRel),
+        numXPos = arrayFigTwoSubPlotPos{iSpecRel}(1) - 1.6*arrayFigTwoSubPlotPos{iSpecRel}(3);
+    else
+        numXPos = arrayFigTwoSubPlotPos{iSpecRel}(1) - 0.80*arrayFigTwoSubPlotPos{iSpecRel}(3);
+    end
+    numYPos = arrayFigTwoSubPlotPos{iSpecRel}(2) + 1.20*arrayFigTwoSubPlotPos{iSpecRel}(4);
+    
+    %'A' = #65 in the UINT8 character set
+    stringPanelLabel = char(uint8(64 + iSpecRel));
+    annotation( 'textbox', [numXPos numYPos 0.01 0.01], ...
+                'String', ['(' stringPanelLabel ')'], ...
+                'FontSize', numFigThreePanelLabelFontSize, ...
+                'FontWeight', 'bold', 'LineStyle', 'none' );
+      
     hold off;  
     
 end
 
-print(figOut, '-r300', '-dpng', [ structSettings.OutputFolder strFoldSep 'FigX.png' ]);
+print(figOut, '-r300', '-dpng', [ structSettings.OutputFolder strFoldSep 'Fig2_LMMEL_plots.png' ]);
 close(figOut);
 
 
