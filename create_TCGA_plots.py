@@ -394,9 +394,9 @@ structMessRNAData = AnalyseTCGA.extractMessRNAData(strMessRNADataPath, flagPerfo
 arrayMicMessRNAPairedIndices = AnalyseTCGA.matchMicAndMessRNAData(strTCGASKCMBasePath, structMicRNAData['obsLabels'], structMessRNAData['obsLabels'])
 numObs = len(arrayMicMessRNAPairedIndices)
 
-numAnnotationFontSize = 8
+numAnnotationFontSize = 10
 numMaxYTicks = 3
-numMaxXTicks = 4
+numMaxXTicks = 3
 
 # create a multi-panel figure for the final output
 handleFig, arrayAxesHandles = plt.subplots(2,3)
@@ -447,8 +447,9 @@ for iMicRNA in range(numMicRNAsToPlot):
             numTCGALogDataCorr = np.corrcoef(np.log2(arrayMicRNAVector), np.log2(arrayMessRNAVector))[0, 1]
 
             # and output appropriate plots
-            arrayAxesHandles[iMicRNA,iMessRNA].scatter(np.log2(arrayMicRNAVector), np.log2(arrayMessRNAVector), s=5, c='0.8', edgecolors='0.3')
-            arrayAxesHandles[iMicRNA,iMessRNA].set_xlabel(stringMicRNAToTest + ' abundance', fontsize=numAnnotationFontSize)
+            arrayAxesHandles[iMicRNA,iMessRNA].scatter(np.log2(arrayMicRNAVector), np.log2(arrayMessRNAVector),
+                                                       s=5, c='0.8', edgecolors='0.3', alpha=0.6)
+            arrayAxesHandles[iMicRNA,iMessRNA].set_xlabel(stringMicRNAToTest + '\nabundance', fontsize=numAnnotationFontSize)
             arrayAxesHandles[iMicRNA,iMessRNA].set_ylabel(stringMessRNAToTest + ' abundance', fontsize=numAnnotationFontSize)
 
             # calculate a linear best fit to the data
@@ -458,7 +459,7 @@ for iMicRNA in range(numMicRNAsToPlot):
             # overlay the line of best fit
             numMinX = min(np.log2(arrayMicRNAVector))
             numMaxX = max(np.log2(arrayMicRNAVector))
-            arrayAxesHandles[iMicRNA,iMessRNA].plot([numMinX, numMaxX], funcFit([numMinX, numMaxX]), 'r-')
+            arrayAxesHandles[iMicRNA,iMessRNA].plot([numMinX, numMaxX], funcFit([numMinX, numMaxX]), 'r-', lw=2)
 
             # tidy up the x-axis tick locations
             arrayXTickLoc = plt.MaxNLocator(numMaxXTicks)
@@ -486,7 +487,8 @@ for iMicRNA in range(numMicRNAsToPlot):
 
 handleFig.tight_layout()
 
-handleFig.savefig(os.path.join(strOutputFolder, 'FigX_miR29b_TCGAplots'), ext='png', close=True, dpi=300)
+handleFig.savefig(os.path.join(strOutputFolder, 'Fig4_miR29b_TCGAplots.png'), format='png', dpi=300)
+handleFig.savefig(os.path.join(strOutputFolder, 'Fig4_miR29b_TCGAplots.eps'), format='eps', dpi=600)
 plt.close(handleFig)
 
 
@@ -568,8 +570,8 @@ handleFig.set_size_inches(66/numPlotsOverY, 60/numPlotsOverX)
 
 for iRel in range(numRelsToPlot):
 
-    numPlotRow = np.floor(iRel/numPlotsOverX)*2
-    numPlotCol = iRel - ((numPlotRow/2)*numPlotsOverX)
+    numPlotRow = np.int(np.floor(iRel/numPlotsOverX)*2)
+    numPlotCol = np.int(iRel - ((numPlotRow/2)*numPlotsOverX))
 
     # match the string to the pointer array
     stringMicRNAToTest = arrayRelsToPlot[iRel][0]
@@ -624,7 +626,8 @@ for iRel in range(numRelsToPlot):
             stringMicRNAToDisp = 'miR-' + stringMicRNAToTest[8:]
 
         # and output appropriate plots
-        arrayAxesHandles[numPlotRow, numPlotCol].scatter(np.log2(arrayMicRNAVector), np.log2(arrayMessRNAVector), s=5, c='0.8', edgecolors='0.3')
+        arrayAxesHandles[numPlotRow, numPlotCol].scatter(np.log2(arrayMicRNAVector), np.log2(arrayMessRNAVector),
+                                                         s=5, c='0.8', edgecolors='0.3')
         arrayAxesHandles[numPlotRow, numPlotCol].set_xlabel(stringMicRNAToDisp, fontsize=numAnnotationFontSize)
         arrayAxesHandles[numPlotRow, numPlotCol].set_ylabel(stringMessRNAToTest, fontsize=numAnnotationFontSize)
 
