@@ -1,28 +1,30 @@
 # LMMEL-miR-miner
-MATLAB scripts that use miR target prediction databases (TargetScan 7.1, DIANA-microT CDS) to enrich a statistical analysis (Pearson's correlation, mutual information) of miR and mRNA data from the Ludwig Melbourne melanoma (LM-MEL) cell line panel data
+MATLAB scripts that use miR target prediction databases (TargetScan 7.1, DIANA-microT CDS) to enrich a statistical analysis 
+(Pearson's correlation, mutual information) of miR and mRNA data from the Ludwig Melbourne melanoma (LM-MEL) cell line panel data
 
-### Accompanying Data
+## Accompanying Data
 
 These scripts use a number of data sources, including:
 
-* LM-MEL Cell Line Panel: miR and mRNA abundance data
-[Original Manuscript](http://dx.doi.org/10.1111/pcmr.12097)
-[Data Link](http://to-be-fixed)
+#### LM-MEL Cell Line Panel: miR and mRNA abundance data
+* [Original Manuscript](http://dx.doi.org/10.1111/pcmr.12097)
+* [Data Link](http://to-be-fixed)
 
-* [TCGA](http://cancergenome.nih.gov/) Skin and Cutaneous Melanoma (SKCM) data: miR and mRNA abundance data from clinical samples
-[Data Link](https://tcga-data.nci.nih.gov/tcga/tcgaCancerDetails.jsp?diseaseType=SKCM&diseaseName=Skin%20Cutaneous%20Melanoma)
+#### [TCGA]( http://cancergenome.nih.gov/ ) Skin and Cutaneous Melanoma (SKCM) data: miR and mRNA abundance data from clinical samples
+* [Data Link]( https://tcga-data.nci.nih.gov/tcga/tcgaCancerDetails.jsp?diseaseType=SKCM&diseaseName=Skin%20Cutaneous%20Melanoma )
+* [Related Manuscript]( http://dx.doi.org/10.1111/pcmr.12374 )
 
-* TargetScan v7.1
-[Original Manuscript](http://to-be-fixed)
-[Data Link](http://to-be-fixed)
+#### TargetScan v7.1
+* [Original Manuscript]( http://http://www.targetscan.org/vert_71/ )
+* [Data Link]( http://www.targetscan.org/cgi-bin/targetscan/data_download.vert71.cgi )
 
-* miRTarBase
-[Original Manuscript](http://to-be-fixed)
-[Data Link](http://to-be-fixed)
+#### miRTarBase
+* [Original Manuscript]( http://http://mirtarbase.mbc.nctu.edu.tw/ )
+* [Data Link]( http://to-be-fixed )
 
-* DIANA-microT CDS (v5.0)
-[Original Manuscript](http://to-be-fixed)
-[Data Link](http://to-be-fixed)
+#### DIANA-microT CDS (v5.0)
+* [Original Manuscript]( http://to-be-fixed )
+* [Data Link]( http://to-be-fixed )
 
 
 ### Virtual Reference Environment
@@ -35,18 +37,29 @@ For further information on Virtual Reference Environments, please refer to the
 
 
 
-### Contacts
+## Contacts
 
 For further information, please contact:
 
-* Dr. Miles Andrews - Cancer Immunobiology Laboratory, Olivia Newton-John Cancer Research Institute, Australia  
-miles.andrews@onjcri.org.au
+#### Dr. Miles Andrews
+* 
+* ex: Cancer Immunobiology Laboratory, Olivia Newton-John Cancer Research Institute, Australia  
+* miles.andrews (at) onjcri.org.au
 
-* Dr. Joe Cursons - Systems Biology Laboratory, University of Melbourne, Australia  
-joseph.cursons@unimelb.edu.au
+#### Dr. Joe Cursons
+* Bioinformatics Division, Walter and Eliza Hall Institute of Medical Research, Australia
+* ex: Systems Biology Laboratory, University of Melbourne, Australia  
+* cursons.j (at) wehi.edu.au
 
-* Dr. Daniel Hurley - Systems Biology Laboratory, University of Melbourne, Australia  
-daniel.hurley@unimelb.edu.au
+#### Dr. Daniel Hurley 
+* 
+* ex: Systems Biology Laboratory, University of Melbourne, Australia  
+* daniel.hurley (at) unimelb.edu.au
 
-* Dr. Andreas Behren - Olivia Newton-John Cancer Research Institute, Australia  
-andreas.behren@onjcri.org.au
+#### Dr. Andreas Behren
+* Olivia Newton-John Cancer Research Institute, Australia  
+* andreas.behren (at) onjcri.org.au
+
+#### Prof. Edmund Crampin
+* Systems Biology Laboratory, University of Melbourne, Australia  
+* edmund.crampin (at) unimelb.edu.au
