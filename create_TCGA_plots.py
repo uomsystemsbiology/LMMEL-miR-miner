@@ -4,18 +4,82 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 __author__ = 'jcursons'
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# This script is used to analyse melanoma (SKCM) data from The Cancer Genome Atlas (TCGA) project, in particular to
+#  visualise the expression of micro-RNAs and putative target mRNAs across clinical samples. This analysis produces
+#  a subset of the results presented in:
+#   MC Andrews/J Cursons, DG Hurley, M Anaka, JS Cebon, A Behren, EJ Crampin (2016). Systems analysis identifies
+#    miR-29b regulation of invasiveness in melanoma. BMC Molecular Cancer, (Accepted Nov 2016).
+#   http://dx.doi.org/doi-to-be-assigned
+#
+# Further details on this project can be found on the GitHub repository:
+#  http://github.com/uomsystemsbiology/LMMEL-miR-miner
+#
+# For further information, please contact:
+#  Dr. Miles Andrews
+#   MD Anderson Cancer Centre
+#   miles.andrews (at) onjcri.org.au
+#
+#  Dr. Joe Cursons
+#   Bioinformatics Division, Walter and Eliza Hall Institute of Medical Research, Australia
+#   cursons.j (at) wehi.edu.au
+#
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# This script contains three functions which are used to extract micro-RNA (miR) and mRNA abundances from the TCGA SKCM
+#  data, and match data between patients, defined within:
+# class AnalyseTCGA
+#  --> function extractMicRNAData: combine miR data across multiple files and export a dictionary containing arrays and
+#                                   pointers
+#  --> function extractMessRNAData: combine mRNA data across multiple files and export a dictionary containing arrays
+#                                   and pointers
+#  --> function matchMicAndMessRNAData: examine TCGA sample barcodes between the miR and mRNA data, and create an
+#                                       array/vector which points between related samples.
+#
+# These functions are executed by the appended script which plots a number of specified associations.
+#  * hsa-mir-29b-1 and hsa-mir-29b-2 abundance are plotted against the abundance of LAMC1, PPIC and LASP1
+#       --> Fig4_miR29b_TCGAplots.png/Fig4_miR29b_TCGAplots.eps
+#  * the abundance for a number of miRs are plotted against the abundance of mRNAs identified as putative targets
+#     through the analysis of the LM-MEL cell line panel
+#       --> Fig2_TCGAPlots.png
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 class AnalyseTCGA:
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    # function which moves through the specified miR data folder and extracts the required information
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # extractMicRNAData
+    #
+    # Inputs:
+    #   strInMicRNADataDir: a string containing the file path for the TCGA SKCM micro-RNA data
+    #   flagPerformExtraction: a Boolean flag which specifies whether the data need to be extracted (and saved). This
+    #                           parameter must be set to True for the initial execution, but can then be set to False to
+    #                           improve run time on subsequent execution.
+    # Outputs:
+    #   A dictionary containing label vectors and the data array within matched key/value pairs:
+    #       'data': a 2D np.float64 array containing the miR transcript abundance, with micro-RNAs in rows and TCGA
+    #               samples in columns
+    #       'miRLabels': a list containing the names of micro-RNAs, matched to the data array
+    #       'obsLabels': a list containing the names of TCGA samples, matched to the data array
+    # # # # # # # # # #
     def extractMicRNAData(strInMicRNADataDir, flagPerformExtraction):
 
+        # specify a name for the processed miR data file (so that data extraction only needs to be performed once, to
+        #  improve runtime on subsequent executions)
         strOutputSaveFile = 'processedMicRNAData'
+        # identify the base directory path for the miR data by performing an rsplit of the string around the path
+        #  separator
+        # TODO: write this using os.path
         strTCGABaseDir = strInMicRNADataDir.rsplit("\\", 1)[0]
 
+        # if flagPerformExtraction=False but the processed data file is not present, overwrite this setting and provide
+        #  a warning to the user
+        if np.bitwise_and((not os.path.exists(os.path.join(strTCGABaseDir, (strOutputSaveFile + '.npz')))),
+                          (not flagPerformExtraction)):
+            print('warning: the pre-processed miR data cannot be found at ' +
+                  os.path.exists(os.path.join(strTCGABaseDir, (strOutputSaveFile + '.npz'))) +
+                  ' and flagPerformExtraction=False; \n' +
+                  '          forcing flagPerformExtraction=True, this will increase the run time')
+            flagPerformExtraction=True
+
+        # if specified, perform the miR data extraction
         if flagPerformExtraction:
             print('Attempting to extract miR data from ' + strInMicRNADataDir)
             # extract the name of all files within the specified folder
@@ -77,6 +141,7 @@ class AnalyseTCGA:
             # create an array which stores the combined data
             arrayCombinedMicRNAData = np.zeros((numMicRNAs, numFiles), dtype=np.float64)
 
+            # it can take a bit of time to extract the miR data, so create a vector for progress reporting
             numProgDivisions = 20
             numProgCounter = numFiles/numProgDivisions
             numProgOut = 100/numProgDivisions
@@ -119,24 +184,34 @@ class AnalyseTCGA:
                         numDataObs = np.float64(arrayRow[3])
 
                         # sum over all mature counts
-                        arrayCombinedMicRNAData[numOutputMicRNAIndex, iFile] = arrayCombinedMicRNAData[numOutputMicRNAIndex, iFile] + numDataObs
+                        arrayCombinedMicRNAData[numOutputMicRNAIndex, iFile] = \
+                            arrayCombinedMicRNAData[numOutputMicRNAIndex, iFile] + numDataObs
 
             # save the output arrays using numpy (as this is quicker than reading csv files back in)
-            np.savez(os.path.join(strTCGABaseDir, strOutputSaveFile), arrayMicRNANames=arrayMicRNANames, arrayCombinedMicRNAData=arrayCombinedMicRNAData, arrayObsFileLabels=arrayObsFileLabels)
+            np.savez(os.path.join(strTCGABaseDir, strOutputSaveFile),
+                     arrayMicRNANames=arrayMicRNANames,
+                     arrayCombinedMicRNAData=arrayCombinedMicRNAData,
+                     arrayObsFileLabels=arrayObsFileLabels
+                     )
 
         else:
             if os.path.exists(os.path.join(strTCGABaseDir, (strOutputSaveFile + '.npz'))):
-                # load the data from the specified files
-                print('Loading the processed miR data from ' + os.path.join(strTCGABaseDir, (strOutputSaveFile + '.npz')))
+                print('Loading the processed miR data from ' +
+                      os.path.join(strTCGABaseDir, (strOutputSaveFile + '.npz')))
 
+                # load the data from the specified files
                 npzfile = np.load(os.path.join(strTCGABaseDir, (strOutputSaveFile + '.npz')))
 
+                # extract the arrays/vectors from the dict for output
                 arrayCombinedMicRNAData = npzfile['arrayCombinedMicRNAData']
                 arrayMicRNANames = npzfile['arrayMicRNANames']
                 arrayObsFileLabels = npzfile['arrayObsFileLabels']
 
             else:
-                print('Cannot load the miR data, ' + os.path.join(strTCGABaseDir, (strOutputSaveFile + '.npz')) + ' does not exist, change flagPerformExtraction')
+                # in theory the function shouldn't get here because I check the presence of the data and the value for
+                #  flagPerformExtraction above..
+                print('Cannot load the miR data, ' + os.path.join(strTCGABaseDir, (strOutputSaveFile + '.npz')) +
+                      ' does not exist, change flagPerformExtraction')
 
         return {'data': arrayCombinedMicRNAData, 'miRLabels': arrayMicRNANames, 'obsLabels': arrayObsFileLabels}
 
