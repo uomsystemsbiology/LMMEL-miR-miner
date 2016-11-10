@@ -78,7 +78,7 @@ These scripts use a number of data sources, including:
 * Users may be interested in downloading TCGA SKCM data which are already merged across patients from:
   * [UCSC Cancer Browser]( https://genome-cancer.ucsc.edu/proj/site/hgHeatmap/ )
   * [Broad Institute's FireBrowse]( http://firebrowse.org/ )
-  * NB: the scripts provided are not designed for this input; however the AnalyseTCGA functions can be replaced with a single call to pd.read_table() for the genomicMatrix data
+  * **NB**: the scripts provided are not designed for this input; however the AnalyseTCGA functions can be replaced with a single call to pd.read_table() for the genomicMatrix data
 
 #### TargetScan v7.1
 * [Project Website]( http://http://www.targetscan.org/vert_71/ )
