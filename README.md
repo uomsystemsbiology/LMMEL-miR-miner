@@ -1,11 +1,24 @@
 # LMMEL-miR-miner
-MATLAB scripts that use miR target prediction databases (TargetScan 7.1, DIANA-microT CDS) to enrich a statistical analysis 
-(Pearson's correlation, mutual information) of miR and mRNA data from the Ludwig Melbourne melanoma (LM-MEL) cell line panel data
+A collection of scripts to predict putative miR-mRNA interactions where miR activity may be associated with melanoma
+phenotype switching. These scripts can be split by the programming language used:
+
+#### MATLAB script(s)
+The MATLAB script find_LMMEL_active_miRs.m (and associated functions wtihin MATLAB_functions), integrates 
+miR target prediction databases (TargetScan 7.1, DIANA-microT CDS) to enrich a statistical analysis 
+(Pearson's correlation, mutual information) of miR and mRNA data from the Ludwig Melbourne melanoma (LM-MEL) 
+cell line panel data. The output from this script includes a number of putative miR:mRNA interactions.
+
+#### R script(s)
+The R scripts included here examine the TCGA SKCM raw data files and create text files which are used as input for
+the python scripts.
+
+#### python script
+The python script create_TCGA_plots.py is a standalone script which searches for specified miR:mRNA interactions
+within the TCGA SKCM data and plots figure panels which are matched to specific results identified from the cell line analaysis.
 
 
-This script accompanies the manuscript:
-#### MC Andrews/J Cursons, DG Hurley, M Anaka, JS Cebon, A Behren, EJ Crampin (2016). Systems analysis identifies miR-29b 
-#### regulation of invasiveness in melanoma. *BMC Molecular Cancer*, (Accepted Nov 2016).
+These scripts accompanies the manuscript:
+#### MC Andrews/J Cursons, DG Hurley, M Anaka, JS Cebon, A Behren, EJ Crampin (2016). Systems analysis identifies miR-29b regulation of invasiveness in melanoma. *BMC Molecular Cancer*, (Accepted Nov 2016).
 * doi: to-be-assigned
 
 
@@ -13,9 +26,9 @@ This script accompanies the manuscript:
 For further information, please contact:
 
 #### Dr. Miles Andrews
-* 
+* Department of Genomic Medicine and Department of Surgical Oncology, MD Anderson Cancer Center, USA
 * *ex*: Cancer Immunobiology Laboratory, Olivia Newton-John Cancer Research Institute, Australia  
-* miles.andrews (at) onjcri.org.au
+* mcandrews (at) mdanderson.org
 
 #### Dr. Joe Cursons
 * Bioinformatics Division, Walter and Eliza Hall Institute of Medical Research, Australia
@@ -23,8 +36,7 @@ For further information, please contact:
 * cursons.j (at) wehi.edu.au
 
 #### Dr. Daniel Hurley 
-* 
-* *ex*: Systems Biology Laboratory, University of Melbourne, Australia  
+* Systems Biology Laboratory, University of Melbourne, Australia  
 * daniel.hurley (at) unimelb.edu.au
 
 #### Dr. Andreas Behren
@@ -40,7 +52,7 @@ For further information, please contact:
 * edmund.crampin (at) unimelb.edu.au
 
 
-### Virtual Reference Environment
+## Virtual Reference Environment
 
 For users unfamiliar with python, a Virtual Reference Environment will be available for this  
 project, containing all scripts, data and documentation in an easily-deployed format.
@@ -57,12 +69,16 @@ These scripts use a number of data sources, including:
 #### LM-MEL Cell Line Panel: miR and mRNA abundance data
 * [Behren *et al.*, Pig. Cell Mel. Res., (2013)]( http://dx.doi.org/10.1111/pcmr.12097 )
 * [mRNA abundance data (ArrayExpress)]( https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-1496/ )
-* [miR abundance data (GEO)]( http://to.be.fixed )
+* [miR abundance data (GEO)]( http://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE89438 )
 
 #### TCGA Skin and Cutaneous Melanoma (SKCM) data: miR and mRNA abundance data from clinical samples
 * [Project Link]( http://cancergenome.nih.gov/ )
 * [Data Link]( https://tcga-data.nci.nih.gov/tcga/tcgaCancerDetails.jsp?diseaseType=SKCM&diseaseName=Skin%20Cutaneous%20Melanoma )
 * [Related Manuscript (Analytical)]( http://dx.doi.org/10.1111/pcmr.12374 )
+* Users may be interested in downloading TCGA SKCM data which are already merged across patients from:
+..* [UCSC Cancer Browser]( https://genome-cancer.ucsc.edu/proj/site/hgHeatmap/ )
+..* [Broad Institute's FireBrowse]( http://firebrowse.org/ )
+..* NB: the scripts provided are not designed for this input; however the AnalyseTCGA functions can be replaced with a single call to pd.read_table() for the genomicMatrix data
 
 #### TargetScan v7.1
 * [Project Website]( http://http://www.targetscan.org/vert_71/ )
